@@ -1,4 +1,4 @@
-![Project Banner](bluepy.png)
+![Project Banner](bluepy.jpg)
 
 # Bluepy the AI-Driven Blueprint Node gen tool for Unreal Engine
 
