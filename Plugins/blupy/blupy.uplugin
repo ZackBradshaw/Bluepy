@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "blupy",
+	"Description": "Your ai blueprint assistant",
+	"Category": "Other",
+	"CreatedBy": "Zack Bradshaw",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": false,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "blupy",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	]
+}
