@@ -10,7 +10,6 @@ Welcome to Bluepy Docs's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   blueprint_mapping
 
 
 Indices and tables
