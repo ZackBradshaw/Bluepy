@@ -1,10 +1,26 @@
 import json
 import pandas as pd
 import re
+import os
+import logging
+
+# Setup enhanced logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def read_csv(csv_path):
-    df = pd.read_csv(csv_path)
-    return df
+    """
+    Reads a CSV file and returns a DataFrame.
+    """
+    if not os.path.exists(csv_path):
+        logging.error(f"CSV file {csv_path} does not exist.")
+        return None
+    try:
+        df = pd.read_csv(csv_path)
+        logging.info(f"CSV file {csv_path} successfully read.")
+        return df
+    except Exception as e:
+        logging.error(f"Failed to read CSV file {csv_path}: {e}")
+        return None
 
 def extract_blueprint_elements(blueprint_code):
     """
@@ -33,6 +49,7 @@ def extract_blueprint_elements(blueprint_code):
                 key = key_value_match.group(1)
                 value = key_value_match.group(2)
                 current_element[key] = value
+    logging.info(f"Extracted {len(elements)} blueprint elements.")
     return elements
 
 def blueprint_elements_to_code(elements):
@@ -52,34 +69,42 @@ def blueprint_elements_to_code(elements):
             if key not in ['Class', 'Name', 'ExportPath']:
                 blueprint_code += f"   {key}=({value})\n"
         blueprint_code += "End Object\n"
+    logging.info("Converted blueprint elements back to code.")
     return blueprint_code
 
-def read_and_process_blueprints_from_csv(category_name):
+def read_and_process_blueprints_from_csv():
     """
-    Reads blueprints from a CSV file for a given category, processes the data, and returns structured blueprint elements.
+    Reads blueprints from a CSV file, processes the data, and returns structured blueprint elements.
     """
-    filename = f"./blueprints/{category_name}_blueprints_data.csv"
-    df = pd.read_csv(filename)
+    filename = f"./blueprints/blueprints_data.csv"
+    df = read_csv(filename)
+    if df is None:
+        return None
 
     df['code'] = df['code'].str.strip()  # Remove leading/trailing whitespace
     df.dropna(subset=['code'], inplace=True)  # Remove rows where 'code' is missing
 
     df['elements'] = df['code'].apply(extract_blueprint_elements)
 
+    logging.info("Processed blueprints from CSV.")
     return df
 
-def save_blueprints_to_json(processed_blueprints, category_name):
+def save_blueprints_to_json(processed_blueprints):
     """
     Saves processed blueprints to a JSON file.
     """
-    output_filename = f"./blueprints/{category_name}_processed_blueprints.json"
+    if processed_blueprints is None:
+        logging.error("No processed blueprints to save.")
+        return
 
-    processed_blueprints.to_json(output_filename, orient='records', lines=True)
-
-    print(f"Processed blueprints saved to {output_filename}")
+    output_filename = f"./blueprints/processed_blueprints.json"
+    try:
+        processed_blueprints.to_json(output_filename, orient='records', lines=True)
+        logging.info(f"Processed blueprints saved to {output_filename}")
+    except Exception as e:
+        logging.error(f"Failed to save processed blueprints to JSON: {e}")
 
 if __name__ == "__main__":
-    category_name = "example_category"  # Example category name
-    processed_blueprints = read_and_process_blueprints_from_csv(category_name)
+    processed_blueprints = read_and_process_blueprints_from_csv()
 
-    save_blueprints_to_json(processed_blueprints, category_name)
+    save_blueprints_to_json(processed_blueprints)
