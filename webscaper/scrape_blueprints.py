@@ -66,7 +66,22 @@ def scrape_blueprint_data(link):
     except Exception as e:
         logging.error(f"Error scraping blueprint data from {link}: {e}")
         return {}
-
+        
+def read_processed_blueprints_json(json_path):
+    """
+    Reads a JSON file containing processed blueprints and returns the data.
+    """
+    if not os.path.exists(json_path):
+        logging.error(f"JSON file {json_path} does not exist.")
+        return None
+    try:
+        with open(json_path, 'r') as f:
+            data = json.load(f)
+        logging.info(f"JSON file {json_path} successfully read.")
+        return data
+    except Exception as e:
+        logging.error(f"Failed to read JSON file {json_path}: {e}")
+        return None
 def save_blueprints_csv(blueprints_data):
     """
     Saves the blueprint data as a CSV file.
@@ -97,6 +112,24 @@ def scrape_blueprint_data_concurrently(blueprint_links):
                 logging.info(f"Scraped data for {future_to_link[future]}")
 
     return all_blueprints_data
+
+def parse_json_back_to_code(json_path):
+    """
+    Reads processed blueprints from a JSON file and parses them back into raw blueprint code.
+    """
+    processed_blueprints = read_processed_blueprints_json(json_path)
+    if processed_blueprints is None:
+        logging.error("Failed to read processed blueprints from JSON.")
+        return
+
+    all_blueprint_codes = []
+    for blueprint in processed_blueprints:
+        elements = blueprint.get('elements', [])
+        blueprint_code = blueprint_elements_to_code(elements)
+        all_blueprint_codes.append(blueprint_code)
+
+    # Here you can save the blueprint codes back to a file or process them further as needed
+    logging.info(f"Parsed {len(all_blueprint_codes)} blueprints back into code.")
 
 def scrape_all_blueprints_concurrently():
     """
