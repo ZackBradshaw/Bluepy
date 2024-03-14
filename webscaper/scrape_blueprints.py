@@ -53,8 +53,10 @@ def scrape_blueprint_data(link):
         title = soup.find('title').text
         author = soup.find('meta', {'name': 'author'})['content'] if soup.find('meta', {'name': 'author'}) else 'anonymous'
         ue_version = soup.find(string='UE version').findNext('span').text if soup.find(string='UE version') else 'Unknown'
-        # Extracting blueprint code
-        blueprint_code = soup.find('pre', {'class': 'prettyprint'}).text if soup.find('pre', {'class': 'prettyprint'}) else "No code available"
+        
+        # Adjusted to extract blueprint code from a textarea with id="code_to_copy"
+        blueprint_code = soup.find('textarea', {'id': 'code_to_copy'}).text if soup.find('textarea', {'id': 'code_to_copy'}) else "No code available"
+        
         return {'title': title, 'author': author, 'ue_version': ue_version, 'url': full_url, 'code': blueprint_code}
     except Exception as e:
         logging.error(f"Error scraping blueprint data from {link}: {e}")
