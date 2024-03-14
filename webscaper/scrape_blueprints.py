@@ -32,10 +32,10 @@ def scrape_blueprint_data(link):
     full_url = f"{BASE_URL}{link}"
     response = requests.get(full_url)
     soup = BeautifulSoup(response.text, 'html.parser')
-    # Example: Extract title, author, and UE version
+    # Updated: Use 'string' instead of 'text' to avoid DeprecationWarning
     title = soup.find('title').text
     author = soup.find('meta', {'name': 'author'})['content'] if soup.find('meta', {'name': 'author'}) else 'anonymous'
-    ue_version = soup.find(text='UE version').findNext('span').text if soup.find(text='UE version') else 'Unknown'
+    ue_version = soup.find(string='UE version').findNext('span').text if soup.find(string='UE version') else 'Unknown'
     return {'title': title, 'author': author, 'ue_version': ue_version, 'url': full_url}
 
 def scrape_all_blueprints():
