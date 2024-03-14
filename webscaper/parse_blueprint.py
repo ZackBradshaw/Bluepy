@@ -91,7 +91,7 @@ def read_and_process_blueprints_from_csv():
 
 def save_blueprints_to_json(processed_blueprints):
     """
-    Saves processed blueprints to a JSON file.
+    Saves processed blueprints to a JSON file, ensuring no duplicate items are added.
     """
     if processed_blueprints is None:
         logging.error("No processed blueprints to save.")
@@ -99,8 +99,14 @@ def save_blueprints_to_json(processed_blueprints):
 
     output_filename = f"./blueprints/processed_blueprints.json"
     try:
-        processed_blueprints.to_json(output_filename, orient='records', lines=True)
-        logging.info(f"Processed blueprints saved to {output_filename}")
+        # Convert DataFrame to a list of dictionaries and remove duplicates
+        records = processed_blueprints.to_dict('records')
+        unique_records = [dict(t) for t in {tuple(d.items()) for d in records}]
+        
+        with open(output_filename, 'w') as f:
+            json.dump(unique_records, f, indent=4)
+        
+        logging.info(f"Processed blueprints saved to {output_filename} with no duplicates")
     except Exception as e:
         logging.error(f"Failed to save processed blueprints to JSON: {e}")
 
