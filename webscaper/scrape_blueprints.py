@@ -11,6 +11,21 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 BASE_URL = "https://blueprintue.com"
 SEARCH_URL = f"{BASE_URL}/search/?"
 
+
+def fetch_links_for_page(page_url):
+    try:
+        response = requests.get(page_url)
+        if response.status_code != 200:
+            logging.warning(f"Non-200 status code received: {response.status_code}")
+            return []
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+        links = soup.find_all('a', href=True)
+        return [link['href'] for link in links if '/blueprint/' in link['href']]
+    except Exception as e:
+        logging.error(f"Error fetching blueprint links from {page_url}: {e}")
+        return []
+
 def get_blueprint_links_concurrently(base_url, start_page=1, end_page=10):
     """
     Fetches blueprint links across multiple pages concurrently.
