@@ -1,47 +1,52 @@
 import openai
 import json
+import pandas as pd
 
 openai.api_key = 'your_openai_api_key_here'
 
-def interpret_user_input(user_input):
+def read_and_clean_blueprints_from_csv(category_name):
     """
-    Uses OpenAI's API to interpret the user's natural language input.
+    Reads blueprints from a CSV file for a given category, cleans the data, and returns unique blueprint codes.
     """
-    response = openai.Completion.create(
-        engine="davinci",
-        prompt=f"Translate this game development task into sudo code for Unreal Engine Blueprints:\n\n{user_input}",
-        temperature=0.5,
-        max_tokens=150,
-        top_p=1.0,
-        frequency_penalty=0.0,
-        presence_penalty=0.0
-    )
-    return response.choices[0].text.strip()
+    filename = f"./blueprints/{category_name}_blueprints_data.csv"
+    df = pd.read_csv(filename)
+    
+    # Example cleaning steps (adjust based on actual data needs)
+    df['code'] = df['code'].str.strip()  # Remove leading/trailing whitespace
+    df.dropna(subset=['code'], inplace=True)  # Remove rows where 'code' is missing
+    
+    unique_blueprints = df.drop_duplicates(subset=['code'])
+    return unique_blueprints
 
-def map_to_blueprint_sudo_code(interpreted_input):
+def blueprint_code_to_template(blueprint_code):
     """
-    Maps the interpreted input to a structured sudo code format.
-    This is a simplified example. The actual implementation would need
-    to be more sophisticated to handle various Blueprint node types and properties.
+    Converts blueprint code into a structured template.
     """
-    # Example mapping logic
-    mapping = {
-        "create variable": "🔢",
-        "call function": "✨",
-        "begin event": "🚀",
-        "execute next": "➡️"
-    }
-    sudo_code = []
-    for line in interpreted_input.split('\n'):
-        for key, symbol in mapping.items():
-            if key in line:
-                sudo_code.append(f"{symbol} {line}")
-                break
-    return '\n'.join(sudo_code)
+    # This is a simplified example. The actual implementation would need to handle the specific structure of the blueprint code.
+    template = blueprint_code.replace("Begin Object", "🚀 Begin Object")\
+                              .replace("End Object", "🛑 End Object")\
+                              .replace("CustomProperties Pin", "📌 CustomProperties Pin")
+    return template
+
+def process_and_update_blueprint_code(unique_blueprints):
+    """
+    Processes each unique blueprint to update its 'code' column.
+    """
+    for index, row in unique_blueprints.iterrows():
+        updated_code = blueprint_code_to_template(row['code'])
+        unique_blueprints.at[index, 'code'] = updated_code
+    return unique_blueprints
+
+def save_blueprints_to_json(processed_blueprints, category_name):
+    """
+    Saves processed blueprints to a JSON file.
+    """
+    output_filename = f"./blueprints/{category_name}_processed_blueprints.json"
+    processed_blueprints.to_json(output_filename, orient='records', lines=True)
+    print(f"Processed blueprints saved to {output_filename}")
 
 if __name__ == "__main__":
-    user_input = "Create a jump function that increases the player's Z velocity."
-    interpreted_input = interpret_user_input(user_input)
-    blueprint_sudo_code = map_to_blueprint_sudo_code(interpreted_input)
-    print("Interpreted Input:\n", interpreted_input)
-    print("\nMapped to Blueprint Sudo Code:\n", blueprint_sudo_code)
+    category_name = "example_category"  # Example category name
+    unique_blueprints = read_and_clean_blueprints_from_csv(category_name)
+    processed_blueprints = process_and_update_blueprint_code(unique_blueprints)
+    save_blueprints_to_json(processed_blueprints, category_name)
