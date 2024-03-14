@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import os
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Setup enhanced logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -10,37 +11,68 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 BASE_URL = "https://blueprintue.com"
 SEARCH_URL = f"{BASE_URL}/search/?"
 
-def get_blueprint_links(base_url):
+# def get_blueprint_links(base_url):
+#     """
+#     Extracts all blueprint links from the search results, incrementing the page number until no more links are found.
+#     """
+#     page_number = 1
+#     blueprint_links = []
+#     while True:
+#         page_url = f"{base_url}page={page_number}"
+#         try:
+#             response = requests.get(page_url)
+#             if response.status_code != 200:
+#                 logging.warning(f"Non-200 status code received: {response.status_code}")
+#                 break  # Exit loop if the page doesn't exist or server returns an error
+
+#             soup = BeautifulSoup(response.text, 'html.parser')
+#             links = soup.find_all('a', href=True)
+#             page_links = [link['href'] for link in links if '/blueprint/' in link['href']]
+
+#             if not page_links:
+#                 logging.info("No more blueprint links found, exiting.")
+#                 break  # Exit loop if no blueprint links are found on the page
+
+#             blueprint_links.extend(page_links)
+#             logging.info(f"Scraped {len(page_links)} links from page {page_number}")
+#             page_number += 1
+
+#         except Exception as e:
+#             logging.error(f"Error fetching blueprint links from {page_url}: {e}")
+#             break
+
+#     return list(set(blueprint_links))  # Remove duplicates to avoid re-scraping
+
+def fetch_links_for_page(page_url):
+    try:
+        response = requests.get(page_url)
+        if response.status_code != 200:
+            logging.warning(f"Non-200 status code received: {response.status_code}")
+            return []
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+        links = soup.find_all('a', href=True)
+        return [link['href'] for link in links if '/blueprint/' in link['href']]
+    except Exception as e:
+        logging.error(f"Error fetching blueprint links from {page_url}: {e}")
+        return []
+
+def get_blueprint_links_concurrently(base_url, start_page=1, end_page=10):
     """
-    Extracts all blueprint links from the search results, incrementing the page number until no more links are found.
+    Fetches blueprint links across multiple pages concurrently.
     """
-    page_number = 1
+    page_urls = [f"{base_url}page={page}" for page in range(start_page, end_page + 1)]
     blueprint_links = []
-    while True:
-        page_url = f"{base_url}page={page_number}"
-        try:
-            response = requests.get(page_url)
-            if response.status_code != 200:
-                logging.warning(f"Non-200 status code received: {response.status_code}")
-                break  # Exit loop if the page doesn't exist or server returns an error
 
-            soup = BeautifulSoup(response.text, 'html.parser')
-            links = soup.find_all('a', href=True)
-            page_links = [link['href'] for link in links if '/blueprint/' in link['href']]
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_url = {executor.submit(fetch_links_for_page, url): url for url in page_urls}
+        for future in as_completed(future_to_url):
+            page_links = future.result()
+            if page_links:
+                blueprint_links.extend(page_links)
+                logging.info(f"Scraped {len(page_links)} links from {future_to_url[future]}")
 
-            if not page_links:
-                logging.info("No more blueprint links found, exiting.")
-                break  # Exit loop if no blueprint links are found on the page
-
-            blueprint_links.extend(page_links)
-            logging.info(f"Scraped {len(page_links)} links from page {page_number}")
-            page_number += 1
-
-        except Exception as e:
-            logging.error(f"Error fetching blueprint links from {page_url}: {e}")
-            break
-
-    return list(set(blueprint_links))  # Remove duplicates to avoid re-scraping
+    return list(set(blueprint_links))  # Remove duplicates
 
 def scrape_blueprint_data(link):
     """
@@ -81,18 +113,30 @@ def save_blueprints_csv(blueprints_data):
     except Exception as e:
         logging.error(f"Error saving blueprints to CSV: {e}")
 
-def scrape_all_blueprints():
+def scrape_blueprint_data_concurrently(blueprint_links):
     """
-    Scrapes all blueprints and saves the data into a CSV file.
+    Scrapes blueprint data from the links concurrently.
     """
-    logging.info("Starting to scrape all blueprints...")
-    blueprint_links = get_blueprint_links(SEARCH_URL)
     all_blueprints_data = []
-    for link in blueprint_links:
-        blueprint_data = scrape_blueprint_data(link)
-        if blueprint_data:  # Ensure we only add non-empty results
-            all_blueprints_data.append(blueprint_data)
+
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        future_to_link = {executor.submit(scrape_blueprint_data, link): link for link in blueprint_links}
+        for future in as_completed(future_to_link):
+            blueprint_data = future.result()
+            if blueprint_data:
+                all_blueprints_data.append(blueprint_data)
+                logging.info(f"Scraped data for {future_to_link[future]}")
+
+    return all_blueprints_data
+
+def scrape_all_blueprints_concurrently():
+    """
+    Scrapes all blueprints concurrently and saves the data into a CSV file.
+    """
+    logging.info("Starting to scrape all blueprints concurrently...")
+    blueprint_links = get_blueprint_links_concurrently(SEARCH_URL, 1, 20)  # Example: Scrape pages 1 to 20
+    all_blueprints_data = scrape_blueprint_data_concurrently(blueprint_links)
     save_blueprints_csv(all_blueprints_data)
 
 if __name__ == "__main__":
-    scrape_all_blueprints()
+    scrape_all_blueprints_concurrently()
