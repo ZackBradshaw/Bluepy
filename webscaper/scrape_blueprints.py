@@ -4,11 +4,11 @@ import pandas as pd
 import os
 import logging
 
-# Setup basic logging
+# Setup enhanced logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 BASE_URL = "https://blueprintue.com"
-SEARCH_URL = "https://blueprintue.com/search/?"
+SEARCH_URL = f"{BASE_URL}/search/?"
 
 def get_blueprint_links(base_url):
     """
@@ -21,6 +21,7 @@ def get_blueprint_links(base_url):
         try:
             response = requests.get(page_url)
             if response.status_code != 200:
+                logging.warning(f"Non-200 status code received: {response.status_code}")
                 break  # Exit loop if the page doesn't exist or server returns an error
 
             soup = BeautifulSoup(response.text, 'html.parser')
@@ -28,6 +29,7 @@ def get_blueprint_links(base_url):
             page_links = [link['href'] for link in links if '/blueprint/' in link['href']]
 
             if not page_links:
+                logging.info("No more blueprint links found, exiting.")
                 break  # Exit loop if no blueprint links are found on the page
 
             blueprint_links.extend(page_links)
@@ -38,7 +40,7 @@ def get_blueprint_links(base_url):
             logging.error(f"Error fetching blueprint links from {page_url}: {e}")
             break
 
-    return list(set(blueprint_links))  # Remove duplicates
+    return list(set(blueprint_links))  # Remove duplicates to avoid re-scraping
 
 def scrape_blueprint_data(link):
     """
@@ -47,13 +49,17 @@ def scrape_blueprint_data(link):
     try:
         full_url = f"{BASE_URL}{link}"
         response = requests.get(full_url)
+        if response.status_code != 200:
+            logging.warning(f"Skipping {link}, received status code: {response.status_code}")
+            return {}
+
         soup = BeautifulSoup(response.text, 'html.parser')
-        title = soup.find('title').text
-        author = soup.find('meta', {'name': 'author'})['content'] if soup.find('meta', {'name': 'author'}) else 'anonymous'
-        ue_version = soup.find(string='UE version').findNext('span').text if soup.find(string='UE version') else 'Unknown'
+        title = soup.find('title').text.strip()
+        author = soup.find('meta', {'name': 'author'})['content'].strip() if soup.find('meta', {'name': 'author'}) else 'Anonymous'
+        ue_version = soup.find(string='UE version').findNext('span').text.strip() if soup.find(string='UE version') else 'Unknown'
         
         # Extract blueprint code from a textarea with id="code_to_copy"
-        blueprint_code = soup.find('textarea', {'id': 'code_to_copy'}).text if soup.find('textarea', {'id': 'code_to_copy'}) else "No code available"
+        blueprint_code = soup.find('textarea', {'id': 'code_to_copy'}).text.strip() if soup.find('textarea', {'id': 'code_to_copy'}) else "No code available"
         
         return {'title': title, 'author': author, 'ue_version': ue_version, 'url': full_url, 'code': blueprint_code}
     except Exception as e:
@@ -66,7 +72,7 @@ def save_blueprints_csv(blueprints_data):
     """
     try:
         df = pd.DataFrame(blueprints_data)
-        filename = f"./blueprints/blueprints_data.csv"
+        filename = "./blueprints/blueprints_data.csv"
         directory = os.path.dirname(filename)
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -79,7 +85,7 @@ def scrape_all_blueprints():
     """
     Scrapes all blueprints and saves the data into a CSV file.
     """
-    logging.info("Scraping all blueprints")
+    logging.info("Starting to scrape all blueprints...")
     blueprint_links = get_blueprint_links(SEARCH_URL)
     all_blueprints_data = []
     for link in blueprint_links:
