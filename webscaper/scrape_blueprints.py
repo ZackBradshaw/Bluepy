@@ -60,13 +60,13 @@ def scrape_blueprint_data(link):
         logging.error(f"Error scraping blueprint data from {link}: {e}")
         return {}
 
-def save_blueprints_csv(blueprints_data):
+def save_blueprints_csv(blueprints_data, category_name):
     """
-    Saves the blueprint data as a CSV file.
+    Saves the blueprint data as a CSV file, one for each category.
     """
     try:
         df = pd.DataFrame(blueprints_data)
-        filename = "./blueprints/blueprints_data.csv"
+        filename = f"./blueprints/{category_name}_blueprints_data.csv"
         directory = os.path.dirname(filename)
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -77,19 +77,19 @@ def save_blueprints_csv(blueprints_data):
 
 def scrape_all_blueprints():
     """
-    Scrapes all blueprints across all categories and saves the data as a CSV file.
+    Scrapes all blueprints across all categories and saves the data into separate CSV files for each category.
     """
     categories = get_categories()
-    all_blueprints_data = []
     for category in categories:
         logging.info(f"Scraping category: {category}")
+        category_name = category.split('/')[-1]  # Extract a simple name from the category URL
         blueprint_links = get_blueprint_links(f"{BASE_URL}{category}")
+        category_blueprints_data = []
         for link in blueprint_links:
             blueprint_data = scrape_blueprint_data(link)
-            blueprint_data = scrape_blueprint_data(link)
             if blueprint_data:  # Ensure we only add non-empty results
-                all_blueprints_data.append(blueprint_data)
-    save_blueprints_csv(all_blueprints_data)
+                category_blueprints_data.append(blueprint_data)
+        save_blueprints_csv(category_blueprints_data, category_name)
 
 if __name__ == "__main__":
     scrape_all_blueprints()
