@@ -134,7 +134,7 @@ def scrape_all_blueprints_concurrently():
     Scrapes all blueprints concurrently and saves the data into a CSV file.
     """
     logging.info("Starting to scrape all blueprints concurrently...")
-    blueprint_links = get_blueprint_links_concurrently(SEARCH_URL, 20, 200)  # Example: Scrape pages 1 to 20
+    blueprint_links = get_blueprint_links_concurrently(SEARCH_URL, 200, 1000)  # Example: Scrape pages 1 to 20
     all_blueprints_data = scrape_blueprint_data_concurrently(blueprint_links)
     save_blueprints_csv(all_blueprints_data)
 
