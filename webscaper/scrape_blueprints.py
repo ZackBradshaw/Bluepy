@@ -11,52 +11,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 BASE_URL = "https://blueprintue.com"
 SEARCH_URL = f"{BASE_URL}/search/?"
 
-# def get_blueprint_links(base_url):
-#     """
-#     Extracts all blueprint links from the search results, incrementing the page number until no more links are found.
-#     """
-#     page_number = 1
-#     blueprint_links = []
-#     while True:
-#         page_url = f"{base_url}page={page_number}"
-#         try:
-#             response = requests.get(page_url)
-#             if response.status_code != 200:
-#                 logging.warning(f"Non-200 status code received: {response.status_code}")
-#                 break  # Exit loop if the page doesn't exist or server returns an error
-
-#             soup = BeautifulSoup(response.text, 'html.parser')
-#             links = soup.find_all('a', href=True)
-#             page_links = [link['href'] for link in links if '/blueprint/' in link['href']]
-
-#             if not page_links:
-#                 logging.info("No more blueprint links found, exiting.")
-#                 break  # Exit loop if no blueprint links are found on the page
-
-#             blueprint_links.extend(page_links)
-#             logging.info(f"Scraped {len(page_links)} links from page {page_number}")
-#             page_number += 1
-
-#         except Exception as e:
-#             logging.error(f"Error fetching blueprint links from {page_url}: {e}")
-#             break
-
-#     return list(set(blueprint_links))  # Remove duplicates to avoid re-scraping
-
-def fetch_links_for_page(page_url):
-    try:
-        response = requests.get(page_url)
-        if response.status_code != 200:
-            logging.warning(f"Non-200 status code received: {response.status_code}")
-            return []
-
-        soup = BeautifulSoup(response.text, 'html.parser')
-        links = soup.find_all('a', href=True)
-        return [link['href'] for link in links if '/blueprint/' in link['href']]
-    except Exception as e:
-        logging.error(f"Error fetching blueprint links from {page_url}: {e}")
-        return []
-
 def get_blueprint_links_concurrently(base_url, start_page=1, end_page=10):
     """
     Fetches blueprint links across multiple pages concurrently.
