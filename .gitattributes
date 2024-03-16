@@ -1,2 +1,4 @@
+webscaper/blueprints/*.json filter=lfs diff=lfs merge=lfs -text
+webscaper/blueprints/*.csv filter=lfs diff=lfs merge=lfs -text
 *.json filter=lfs diff=lfs merge=lfs -text
 *.csv filter=lfs diff=lfs merge=lfs -text
