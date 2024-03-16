@@ -1,39 +1,42 @@
 import json
-import re
 
 def process_blueprint(input_file, output_file):
     """
-    Process the blueprint JSON file, extracting 'title' and 'code' fields from a complex structure using regex.
+    Process the blueprint JSON file, extracting 'title' and 'code' fields from a complex structure.
+    This version is designed to handle large files and avoid errors related to extra data.
     """
     try:
+        # Open the file using a context manager to ensure it's properly closed after reading.
         with open(input_file, 'r', encoding='utf-8') as file:
-            data = json.load(file)  # Load the JSON content as a dictionary.
-        
-        # Define regex patterns for 'title' and 'code'.
-        title_pattern = re.compile(r'"title":\s*"([^"]+)"')
-        code_pattern = re.compile(r'"code":\s*"([^"]+)"')
-        
-        # Convert the dictionary back to string to use regex.
-        data_str = json.dumps(data)
-        
-        # Search for 'title' and 'code' using regex.
-        title_match = title_pattern.search(data_str)
-        code_match = code_pattern.search(data_str)
-        
-        # Extract 'title' and 'code' from matches, defaulting if not found.
-        title = title_match.group(1) if title_match else "No title provided"
-        code = code_match.group(1) if code_match else "No code provided"
-        
-        # Prepare the processed data.
-        processed_data = {
-            "instruction": title,
-            "input": "<Picture Attached>",
-            "output": code
-        }
+            # Process the file line by line to handle large files and avoid loading everything into memory.
+            processed_data = []
+            for line in file:
+                try:
+                    # Attempt to parse each line as JSON.
+                    obj = json.loads(line)
+                    # Function to recursively extract 'title' and 'code' pairs.
+                    def extract_title_code(obj):
+                        if isinstance(obj, dict):
+                            if "title" in obj and "code" in obj:
+                                processed_data.append({
+                                    "instruction": obj["title"],
+                                    "input": "<Picture Attached>",
+                                    "output": obj["code"]
+                                })
+                            for value in obj.values():
+                                extract_title_code(value)
+                        elif isinstance(obj, list):
+                            for item in obj:
+                                extract_title_code(item)
+                    # Extract 'title' and 'code' from the current object.
+                    extract_title_code(obj)
+                except json.JSONDecodeError:
+                    # Handle lines that cannot be parsed as JSON.
+                    print(f"Skipping line due to JSON parsing error: {line}")
         
         # Save the processed data to the output file.
         with open(output_file, 'w', encoding='utf-8') as file:
-            json.dump([processed_data], file, indent=4)  # Wrap in a list to maintain JSON array structure.
+            json.dump(processed_data, file, indent=4)
         
         print(f"Processed blueprint saved to {output_file}")
     except Exception as e:
