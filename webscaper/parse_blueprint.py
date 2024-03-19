@@ -4,6 +4,14 @@ import re
 import os
 import logging
 
+REDUNDANT_FIELDS = {
+    'bIsReference': 'False',
+    'bIsConst': 'False',
+    'bIsWeakPointer': 'False',
+    'bIsUObjectWrapper': 'False',
+    'bSerializeAsSinglePrecisionFloat': 'False',
+}
+
 # Setup enhanced logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
