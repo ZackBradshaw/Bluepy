@@ -20,7 +20,7 @@ def process_blueprint(input_file, output_file):
                             if "title" in obj and "code" in obj:
                                 processed_data.append({
                                     "instruction": obj["title"],
-                                    "input": "<Picture Attached>",
+                                    "input": "\n",
                                     "output": obj["code"]
                                 })
                             for value in obj.values():

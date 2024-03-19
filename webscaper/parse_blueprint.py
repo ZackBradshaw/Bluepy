@@ -3,7 +3,6 @@ import pandas as pd
 import re
 import os
 import logging
-
 REDUNDANT_FIELDS = {
     'bIsReference': 'False',
     'bIsConst': 'False',
@@ -11,7 +10,6 @@ REDUNDANT_FIELDS = {
     'bIsUObjectWrapper': 'False',
     'bSerializeAsSinglePrecisionFloat': 'False',
 }
-
 # Setup enhanced logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -56,7 +54,9 @@ def extract_blueprint_elements(blueprint_code):
             if key_value_match:
                 key = key_value_match.group(1)
                 value = key_value_match.group(2)
-                current_element[key] = value
+                # Skip redundant fields
+                if key not in REDUNDANT_FIELDS or REDUNDANT_FIELDS[key] != value:
+                    current_element[key] = value
     logging.info(f"Extracted {len(elements)} blueprint elements.")
     return elements
 
@@ -76,6 +76,10 @@ def blueprint_elements_to_code(elements):
         for key, value in element.items():
             if key not in ['Class', 'Name', 'ExportPath']:
                 blueprint_code += f"   {key}=({value})\n"
+        # Add redundant fields with default values
+        for redundant_key, default_value in REDUNDANT_FIELDS.items():
+            if redundant_key not in element:
+                blueprint_code += f"   {redundant_key}=({default_value})\n"
         blueprint_code += "End Object\n"
     logging.info("Converted blueprint elements back to code.")
     return blueprint_code
