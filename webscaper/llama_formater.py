@@ -58,5 +58,5 @@ def format_for_llama(processed_data):
 
 if __name__ == "__main__":
     input_path = "./blueprints/processed_blueprints.json"
-    output_path = "./blueprints/lora_blueprints.json"
+    output_path = "./blueprints/llama_lora.json"
     process_blueprint(input_path, output_path)
