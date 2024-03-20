@@ -1,22 +1,8 @@
 import json
 import pandas as pd
 import re
-import os
 import logging
-
-REDUNDANT_FIELDS = {
-    'bIsReference': 'False',
-    'bIsConst': 'False',
-    'bIsWeakPointer': 'False',
-    'bIsUObjectWrapper': 'False',
-    'bSerializeAsSinglePrecisionFloat': 'False',
-    'bHidden': 'False',
-    'bNotConnectable': 'False',
-    'bDefaultValueIsReadOnly': 'False',
-    'bDefaultValueIsIgnored': 'False',
-    'bAdvancedView': 'False',
-    'bOrphanedPin': 'False',
-}
+import os
 
 # Setup enhanced logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -25,16 +11,13 @@ def read_csv(csv_path):
     """
     Reads a CSV file and returns a DataFrame.
     """
-    if not os.path.exists(csv_path):
-        logging.error(f"CSV file {csv_path} does not exist.")
-        return None
     try:
         df = pd.read_csv(csv_path)
         logging.info(f"CSV file {csv_path} successfully read.")
         return df
     except Exception as e:
         logging.error(f"Failed to read CSV file {csv_path}: {e}")
-        return None
+        return pd.DataFrame()  # Return an empty DataFrame in case of failure
 
 def extract_blueprint_elements(blueprint_code):
     """
@@ -62,9 +45,7 @@ def extract_blueprint_elements(blueprint_code):
             if key_value_match:
                 key = key_value_match.group(1)
                 value = key_value_match.group(2)
-                # Skip redundant fields
-                if key not in REDUNDANT_FIELDS or REDUNDANT_FIELDS[key] != value:
-                    current_element[key] = value
+                current_element[key] = value
     logging.info(f"Extracted {len(elements)} blueprint elements.")
     return elements
 
@@ -84,53 +65,37 @@ def blueprint_elements_to_code(elements):
         for key, value in element.items():
             if key not in ['Class', 'Name', 'ExportPath']:
                 blueprint_code += f"   {key}=({value})\n"
-        # Add redundant fields with default values
-        for redundant_key, default_value in REDUNDANT_FIELDS.items():
-            if redundant_key not in element:
-                blueprint_code += f"   {redundant_key}=({default_value})\n"
         blueprint_code += "End Object\n"
     logging.info("Converted blueprint elements back to code.")
     return blueprint_code
 
-def read_and_process_blueprints_from_csv():
+def read_and_process_blueprints_from_csv(csv_path):
     """
     Reads blueprints from a CSV file, processes the data, and returns structured blueprint elements.
     """
-    filename = f"./blueprints/blueprints_data.csv"
-    df = read_csv(filename)
-    if df is None:
-        return None
+    df = read_csv(csv_path)
 
     df['code'] = df['code'].str.strip()  # Remove leading/trailing whitespace
     df.dropna(subset=['code'], inplace=True)  # Remove rows where 'code' is missing
 
     df['elements'] = df['code'].apply(extract_blueprint_elements)
 
-    logging.info("Processed blueprints from CSV.")
+    logging.info(f"Processed blueprints from {csv_path}.")
     return df
 
-def save_blueprints_to_json(processed_blueprints):
+def save_blueprints_to_json(processed_blueprints, output_filename):
     """
-    Saves processed blueprints to a JSON file, ensuring no duplicate items are added.
+    Saves processed blueprints to a JSON file.
     """
-    if processed_blueprints is None:
-        logging.error("No processed blueprints to save.")
-        return
+    output_path = f"./blueprints/processed_blueprints.json"
 
-    output_filename = f"./blueprints/processed_blueprints.json"
-    try:
-        # Convert DataFrame to a list of dictionaries and remove duplicates
-        records = processed_blueprints.to_dict('records')
-        unique_records = [dict(t) for t in {tuple(d.items()) for d in records}]
-        
-        with open(output_filename, 'w') as f:
-            json.dump(unique_records, f, indent=4)
-        
-        logging.info(f"Processed blueprints saved to {output_filename} with no duplicates")
-    except Exception as e:
-        logging.error(f"Failed to save processed blueprints to JSON: {e}")
+    processed_blueprints.to_json(output_path, orient='records', lines=True)
+
+    logging.info(f"Processed blueprints saved to {output_path}")
 
 if __name__ == "__main__":
-    processed_blueprints = read_and_process_blueprints_from_csv()
+    csv_path = "./blueprints/blueprints_data.csv"  # Example CSV path
+    processed_blueprints = read_and_process_blueprints_from_csv(csv_path)
 
-    save_blueprints_to_json(processed_blueprints)
+    output_filename = os.path.splitext(os.path.basename(csv_path))[0]  # Extract filename without extension
+    save_blueprints_to_json(processed_blueprints, output_filename)
