@@ -18,6 +18,7 @@ def generate_prompt(instruction, output):
     """
     Constructs a custom request to the specified base URL with the instruction and output.
     """
+    print(f"Generating prompt for instruction: {instruction[:30]}...")  # Debug print
     headers = {'Content-Type': 'application/json'}
     data = {
         "inputs": f"Given the Unreal Engine raw blueprint code and its title below, generate a prompt that a user might use to create this blueprint code:\n\nTitle: {instruction}\nBlueprint Code:\n{output}",
@@ -25,14 +26,15 @@ def generate_prompt(instruction, output):
     }
     response = requests.post(base_url, headers=headers, json=data)
     response_json = response.json()
-    return response_json.get('choices', [{}])[0].get('text', '').strip()
+    prompt = response_json.get('choices', [{}])[0].get('text', '').strip()
+    print(f"Generated prompt: {prompt[:30]}...")  # Debug print
+    return prompt
 
 def process_file(input_file, output_file):
     """
-    Processes the file incrementally, handling large files efficiently.
+    Processes the file incrementally, handling large files efficiently and updating one object at a time.
     """
-    finetuned_data = []
-    with open(input_file, 'r') as f:
+    with open(input_file, 'r') as f, open(output_file, 'w') as out_f:
         json_str = ""
         for line in f:
             json_str += line
@@ -42,24 +44,19 @@ def process_file(input_file, output_file):
                 json_str = ""
                 # Process the JSON object
                 if 'instruction' in data and 'output' in data:
+                    print("Processing JSON object...")  # Debug print
                     instruction = data['instruction']
                     output = data['output']
                     prompt = generate_prompt(instruction, output)
-                    finetuned_data.append({"instruction": prompt})
+                    processed_item = {"instruction": prompt}
+                    json.dump(processed_item, out_f)
+                    out_f.write("\n")  # Write each JSON object on a new line
+                    print("Processed and saved JSON object.")  # Debug print
                 else:
                     print("Missing 'instruction' or 'output' key in JSON object.")
             except json.JSONDecodeError:
                 # If JSON is incomplete, continue accumulating lines
                 continue
-
-    # Save the processed data incrementally to avoid memory issues
-    try:
-        with open(output_file, 'w') as f:
-            for item in finetuned_data:
-                json.dump(item, f)
-                f.write("\n")  # Write each JSON object on a new line
-    except Exception as e:
-        print(f"Error saving processed data: {e}")
 
 # Adjust the file paths as necessary
 input_file_path = './blueprints/alpaca_lora.json'
