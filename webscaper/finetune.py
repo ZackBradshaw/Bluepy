@@ -29,38 +29,40 @@ def generate_prompt(instruction, output):
 
 def process_file(input_file, output_file):
     """
-    Handles files with multiple JSON objects, ensuring proper JSON format.
+    Processes the file incrementally, handling large files efficiently.
     """
-    with open(input_file, 'r') as f:
-        content = f.readlines()
-
     finetuned_data = []
-    json_str = ""
+    with open(input_file, 'r') as f:
+        json_str = ""
+        for line in f:
+            json_str += line
+            try:
+                data = json.loads(json_str)
+                # Reset json_str after successfully loading a JSON object
+                json_str = ""
+                # Process the JSON object
+                if 'instruction' in data and 'output' in data:
+                    instruction = data['instruction']
+                    output = data['output']
+                    prompt = generate_prompt(instruction, output)
+                    finetuned_data.append({"instruction": prompt})
+                else:
+                    print("Missing 'instruction' or 'output' key in JSON object.")
+            except json.JSONDecodeError:
+                # If JSON is incomplete, continue accumulating lines
+                continue
 
-    for line in content:
-        json_str += line.strip()
-        try:
-            # Attempt to parse the JSON string
-            data = json.loads(json_str)
-            # If successful, process the data
-            instruction = data['instruction']
-            output = data['output']
-            prompt = generate_prompt(instruction, output)
-            finetuned_data.append({"instruction": prompt})
-            json_str = ""  # Reset json_str for the next object
-        except json.JSONDecodeError:
-            # If JSON is incomplete, continue accumulating lines
-            continue
-
-    # Save the processed data
+    # Save the processed data incrementally to avoid memory issues
     try:
         with open(output_file, 'w') as f:
-            json.dump(finetuned_data, f, indent=4)
+            for item in finetuned_data:
+                json.dump(item, f)
+                f.write("\n")  # Write each JSON object on a new line
     except Exception as e:
         print(f"Error saving processed data: {e}")
 
 # Adjust the file paths as necessary
-input_file_path = './blueprints/processed_blueprints.json'
+input_file_path = './blueprints/alpaca_lora.json'
 output_file_path = './blueprints/finetuned_data.json'
 # Call the process_file function
 process_file(input_file_path, output_file_path)
