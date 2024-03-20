@@ -25,7 +25,7 @@ def generate_prompt(instruction, output):
     
     data = {
         "inputs": f"Given the Unreal Engine raw blueprint code and its title below, generate a prompt that a user might use to create this blueprint code:\n\nTitle: {instruction}\nBlueprint Code:\n{output}",
-        "parameters": {"max_new_tokens": 150}
+        "parameters": {"max_new_tokens": 350}
     }
     
     response = requests.post(base_url, headers=headers, json=data)
@@ -33,31 +33,29 @@ def generate_prompt(instruction, output):
     return response_json.get('choices', [{}])[0].get('text', '').strip()
 
 def process_file(input_file, output_file):
-    """
-    This function reads the input JSON file, generates prompts for each entry using the custom base URL,
-    and saves the results in the output JSON file.
-    """
-    with open(input_file, 'r') as f:
-        data = json.load(f)
-
     finetuned_data = []
 
-    for entry in data:
-        instruction = entry['instruction']
-        output = entry['output']
-        prompt = generate_prompt(instruction, output)
-        finetuned_data.append({
-            "instruction": instruction,
-            "output": output,
-            "generated_prompt": prompt
-        })
+    # Open the file and read it line by line
+    with open(input_file, 'r') as f:
+        for line in f:
+            try:
+                # Try to parse each line as a separate JSON object
+                entry = json.loads(line)
+                instruction = entry['title']
+                output = entry['code']
+                prompt = generate_prompt(instruction, output)
+                finetuned_data.append({
+                    "title": prompt,
+                })
+            except json.JSONDecodeError as e:
+                print(f"Error decoding JSON: {e}")
 
+    # Write the collected data to the output file
     with open(output_file, 'w') as f:
         json.dump(finetuned_data, f, indent=4)
 
 # Adjust the file paths as necessary
-input_file_path = 'webscaper/blueprints/processed_blueprints.json'
-output_file_path = 'webscaper/blueprints/finetuned_data.json'
-
+input_file_path = './blueprints/processed_blueprints.json'
+output_file_path = './blueprints/finetuned_data.json'
 # Call the process_file function
 process_file(input_file_path, output_file_path)
