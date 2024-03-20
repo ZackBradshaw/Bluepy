@@ -6,14 +6,13 @@ def process_blueprint(input_file, output_file):
     This version is designed to handle large files and avoid errors related to extra data.
     """
     try:
-        # Open the file using a context manager to ensure it's properly closed after reading.
         with open(input_file, 'r', encoding='utf-8') as file:
-            # Process the file line by line to handle large files and avoid loading everything into memory.
             processed_data = []
+            json_string = ''
             for line in file:
+                json_string += line.strip()
                 try:
-                    # Attempt to parse each line as JSON.
-                    obj = json.loads(line)
+                    obj = json.loads(json_string)
                     # Function to recursively extract 'title' and 'code' pairs.
                     def extract_title_code(obj):
                         if isinstance(obj, dict):
@@ -30,19 +29,20 @@ def process_blueprint(input_file, output_file):
                                 extract_title_code(item)
                     # Extract 'title' and 'code' from the current object.
                     extract_title_code(obj)
+                    json_string = ''  # Reset for the next object
                 except json.JSONDecodeError:
-                    # Handle lines that cannot be parsed as JSON.
-                    print(f"Skipping line due to JSON parsing error: {line}")
-        
-        # Save the processed data to the output file.
+                    # If a JSONDecodeError occurs, it might be due to an incomplete JSON object.
+                    # The loop continues, appending more lines to json_string.
+                    continue
+
         with open(output_file, 'w', encoding='utf-8') as file:
             json.dump(processed_data, file, indent=4)
-        
+
         print(f"Processed blueprint saved to {output_file}")
     except Exception as e:
         print(f"Error processing blueprint: {e}")
 
 if __name__ == "__main__":
-    input_path = "./blueprints/processed_blueprints.json"
-    output_path = "./blueprints/lora_blueprints.json"
+    input_path = "webscaper/blueprints/processed_blueprints.json"
+    output_path = "webscaper/blueprints/alpaca_lora.json"
     process_blueprint(input_path, output_path)
