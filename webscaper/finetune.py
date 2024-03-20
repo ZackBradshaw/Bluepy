@@ -51,8 +51,9 @@ def generate_prompt(instruction, output, retries=3, timeout=10):
 
 def process_file(input_file, output_file):
     object_count = 0
-    with open(input_file, 'rb') as f, open(output_file, 'w') as out_f:  # Note 'rb' mode for binary file reading
-        objects = ijson.items(f, 'item')  # 'item' is the prefix for each object in the array
+    successful_count = 0  # Track the number of successful prompt generations
+    with open(input_file, 'rb') as f, open(output_file, 'w') as out_f:
+        objects = ijson.items(f, 'item')
         for obj in objects:
             object_count += 1
             timestamped_print(f"Processing JSON object #{object_count}...")
@@ -60,13 +61,17 @@ def process_file(input_file, output_file):
                 instruction = obj['instruction']
                 output = obj['output']
                 prompt = generate_prompt(instruction, output)
-                processed_item = {"instruction": prompt}
-                json.dump(processed_item, out_f)
-                out_f.write("\n")
-                timestamped_print(f"Processed and saved JSON object #{object_count}.")
+                if prompt != "Error generating prompt after multiple attempts.":
+                    processed_item = {"instruction": prompt}
+                    json.dump(processed_item, out_f)
+                    out_f.write("\n")
+                    successful_count += 1  # Increment only on successful prompt generation
+                    timestamped_print(f"Processed and saved JSON object #{object_count}.")
+                else:
+                    timestamped_print(f"Failed to generate prompt for JSON object #{object_count}.")
             else:
                 timestamped_print(f"Missing 'instruction' or 'output' key in JSON object #{object_count}.")
-    timestamped_print(f"Finished processing. Total objects processed: {object_count}.")
+    timestamped_print(f"Finished processing. Total objects processed: {object_count}, successfully processed: {successful_count}.")
 
 # Adjust the file paths as necessary
 input_file_path = './blueprints/alpaca_lora.json'

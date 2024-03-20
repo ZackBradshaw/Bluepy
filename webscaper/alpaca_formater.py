@@ -31,12 +31,17 @@ def generate_prompt(instruction, output, retries=3, timeout=10):
     
     for attempt in range(retries):
         try:
+            timestamped_print(f"Request URL: {base_url}")
+            timestamped_print(f"Request Payload: {data}")
             response = requests.post(base_url, headers=headers, json=data, timeout=timeout)
             if response.status_code == 200:
-                response_json = response.json()
-                prompt = response_json.get('choices', [{}])[0].get('text', '').strip()
-                timestamped_print(f"Generated prompt: {prompt[:30]}...")
-                return prompt
+                if response.headers.get('Content-Type') == 'application/json':
+                    response_json = response.json()
+                    prompt = response_json.get('choices', [{}])[0].get('text', '').strip()
+                    timestamped_print(f"Generated prompt: {prompt[:30]}...")
+                    return prompt
+                else:
+                    timestamped_print("Response not in JSON format.")
             else:
                 timestamped_print(f"Request failed with status code: {response.status_code}. Attempt {attempt + 1} of {retries}.")
         except requests.exceptions.Timeout:
