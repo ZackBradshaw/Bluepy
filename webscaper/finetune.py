@@ -26,10 +26,26 @@ def generate_prompt(instruction, output):
         "parameters": {"max_new_tokens": 150}
     }
     response = requests.post(base_url, headers=headers, json=data)
-    response_json = response.json()
-    prompt = response_json.get('choices', [{}])[0].get('text', '').strip()
-    timestamped_print(f"Generated prompt: {prompt[:30]}...")
-    return prompt
+
+    # Check if the response status code indicates success
+    if response.status_code == 200:
+        # Ensure the response is in JSON format
+        if 'application/json' in response.headers.get('Content-Type', ''):
+            try:
+                response_json = response.json()
+                prompt = response_json.get('choices', [{}])[0].get('text', '').strip()
+                timestamped_print(f"Generated prompt: {prompt[:30]}...")
+                return prompt
+            except json.JSONDecodeError:
+                timestamped_print("Failed to decode JSON from response.")
+        else:
+            timestamped_print("Response is not in JSON format.")
+    else:
+        timestamped_print(f"Request failed with status code: {response.status_code}")
+        # Optionally, log or print response.text here to see the error message if any
+
+    # Return a default prompt or handle the error appropriately
+    return "Error generating prompt."
 
 def process_file(input_file, output_file):
     object_count = 0
