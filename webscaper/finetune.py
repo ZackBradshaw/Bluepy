@@ -1,3 +1,4 @@
+import json
 import ijson  # Import ijson for incremental JSON parsing
 import requests
 from dotenv import load_dotenv
@@ -8,7 +9,8 @@ import time
 load_dotenv()
 
 # Retrieve the POD ID from the environment variables
-pod_id = os.getenv("POD_ID")
+# pod_id = os.getenv("POD_ID")
+pod_id = "v22g621uasur2u"
 if not pod_id:
     raise ValueError("POD_ID is not set in the environment variables.")
 
@@ -18,31 +20,31 @@ base_url = f"https://{pod_id}-8080.proxy.runpod.net/generate"
 def timestamped_print(*args):
     print(f"{time.strftime('%Y-%m-%d %H:%M:%S')}", *args)
 
-def generate_prompt(instruction, output):
+def generate_prompt(instruction, output, retries=3, timeout=10):
     timestamped_print(f"Generating prompt for instruction: {instruction[:30]}...")
     headers = {'Content-Type': 'application/json'}
     data = {
         "inputs": f"Given the Unreal Engine raw blueprint code and its title below, generate a prompt that a user might use to create this blueprint code:\n\nTitle: {instruction}\nBlueprint Code:\n{output}",
         "parameters": {"max_new_tokens": 150}
     }
-    response = requests.post(base_url, headers=headers, json=data)
-
-    # Check if the response status code indicates success
-    if response.status_code == 200:
-        # Ensure the response is in JSON format
-        if 'application/json' in response.headers.get('Content-Type', ''):
-            try:
+    
+    for attempt in range(retries):
+        try:
+            response = requests.post(base_url, headers=headers, json=data, timeout=timeout)
+            if response.status_code == 200:
                 response_json = response.json()
                 prompt = response_json.get('choices', [{}])[0].get('text', '').strip()
                 timestamped_print(f"Generated prompt: {prompt[:30]}...")
                 return prompt
-            except json.JSONDecodeError:
-                timestamped_print("Failed to decode JSON from response.")
-        else:
-            timestamped_print("Response is not in JSON format.")
-    else:
-        timestamped_print(f"Request failed with status code: {response.status_code}")
-        # Optionally, log or print response.text here to see the error message if any
+            else:
+                timestamped_print(f"Request failed with status code: {response.status_code}. Attempt {attempt + 1} of {retries}.")
+        except requests.exceptions.Timeout:
+            timestamped_print(f"Request timed out. Attempt {attempt + 1} of {retries}.")
+        except requests.exceptions.RequestException as e:
+            timestamped_print(f"Request failed due to an exception: {e}. Attempt {attempt + 1} of {retries}.")
+        time.sleep(1)  # Wait for 1 second before retrying to avoid hammering the server
+
+    return "Error generating prompt after multiple attempts."
 
     # Return a default prompt or handle the error appropriately
     return "Error generating prompt."
