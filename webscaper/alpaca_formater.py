@@ -1,48 +1,56 @@
 import json
+import requests
+from dotenv import load_dotenv
+import os
 
-def process_blueprint(input_file, output_file):
-    """
-    Process the blueprint JSON file, extracting 'title' and 'code' fields from a complex structure.
-    This version is designed to handle large files and avoid errors related to extra data.
-    """
-    try:
-        with open(input_file, 'r', encoding='utf-8') as file:
-            processed_data = []
-            json_string = ''
-            for line in file:
-                json_string += line.strip()
-                try:
-                    obj = json.loads(json_string)
-                    # Function to recursively extract 'title' and 'code' pairs.
-                    def extract_title_code(obj):
-                        if isinstance(obj, dict):
-                            if "title" in obj and "code" in obj:
-                                processed_data.append({
-                                    "instruction": obj["title"],
-                                    "input": "\n",
-                                    "output": obj["code"]
-                                })
-                            for value in obj.values():
-                                extract_title_code(value)
-                        elif isinstance(obj, list):
-                            for item in obj:
-                                extract_title_code(item)
-                    # Extract 'title' and 'code' from the current object.
-                    extract_title_code(obj)
-                    json_string = ''  # Reset for the next object
-                except json.JSONDecodeError:
-                    # If a JSONDecodeError occurs, it might be due to an incomplete JSON object.
-                    # The loop continues, appending more lines to json_string.
-                    continue
+# Load environment variables
+load_dotenv()
 
-        with open(output_file, 'w', encoding='utf-8') as file:
-            json.dump(processed_data, file, indent=4)
+# Retrieve the POD ID from the environment variables
+pod_id = os.getenv("POD_ID")
+if not pod_id:
+    raise ValueError("POD_ID is not set in the environment variables.")
 
-        print(f"Processed blueprint saved to {output_file}")
-    except Exception as e:
-        print(f"Error processing blueprint: {e}")
+# Construct the base URL using the POD ID
+base_url = f"https://{pod_id}-8080.proxy.runpod.net/generate"
 
-if __name__ == "__main__":
-    input_path = "webscaper/blueprints/processed_blueprints.json"
-    output_path = "webscaper/blueprints/alpaca_lora.json"
-    process_blueprint(input_path, output_path)
+def generate_prompt(instruction, output):
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    
+    data = {
+        "inputs": f"Given the Unreal Engine raw blueprint code and its title below, generate a prompt that a user might use to create this blueprint code:\n\nTitle: {instruction}\nBlueprint Code:\n{output}",
+        "parameters": {"max_new_tokens": 150}
+    }
+    
+    response = requests.post(base_url, headers=headers, json=data)
+    response_json = response.json()
+    return response_json.get('choices', [{}])[0].get('text', '').strip()
+
+def process_file(input_file, output_file):
+    with open(input_file, 'r') as f:
+        data = json.load(f)
+
+    finetuned_data = []
+
+    for entry in data:
+        instruction = entry['instruction']
+        output = entry['output']
+        prompt = generate_prompt(instruction, output)
+        finetuned_data.append({
+            "instruction": instruction,
+            "output": output,
+            "generated_prompt": prompt
+        })
+
+    with open(output_file, 'w') as f:
+        json.dump(finetuned_data, f, indent=4)
+
+# Corrected file paths
+home_dir = "/home/zack/code/Bluepy/webscaper"
+input_file_path = os.path.join(home_dir, "blueprints/processed_blueprints.json")
+output_file_path = os.path.join(home_dir, "blueprints/finetuned_data.json")
+
+# Call the process_file function
+process_file(input_file_path, output_file_path)
