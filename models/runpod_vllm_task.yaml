@@ -1,0 +1,11 @@
+task:
+  name: runpod-vllm-worker
+  image: runpod/worker-vllm:stable-cuda11.8.0  # Use the appropriate image tag
+  resources:
+    gpu: 1  # Specify the number of GPUs and other resources as needed
+  env:
+    MODEL_NAME: "openchat/openchat-3.5-1210"  # Example model, replace with your choice
+    MAX_MODEL_LEN: 2048
+    BASE_PATH: "/runpod-volume"
+    HF_TOKEN: "your_huggingface_token_here"  # If using private models
+    # Add other environment variables as needed, following the repository's documentation
