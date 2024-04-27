@@ -8,13 +8,7 @@ import time
 # Load environment variables
 load_dotenv()
 
-# Retrieve the POD ID from the environment variables
-pod_id = os.getenv("POD_ID", "v22g621uasur2u")  # Fallback to a default value if not set
-if not pod_id:
-    raise ValueError("POD_ID is not set in the environment variables.")
-
-# Construct the base URL using the POD ID
-base_url = f"https://{pod_id}-8080.proxy.runpod.net/generate"
+base_url = f"http://localhost:8080"
 
 def timestamped_print(*args):
     """Prints messages with a timestamp."""

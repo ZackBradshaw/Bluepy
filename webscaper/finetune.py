@@ -5,17 +5,7 @@ from dotenv import load_dotenv
 import os
 import time
 
-# Load environment variables
-load_dotenv()
-
-# Retrieve the POD ID from the environment variables
-# pod_id = os.getenv("POD_ID")
-pod_id = "v22g621uasur2u"
-if not pod_id:
-    raise ValueError("POD_ID is not set in the environment variables.")
-
-# Construct the base URL using the POD ID
-base_url = f"https://{pod_id}-8080.proxy.runpod.net/generate"
+base_url = f"http://localhost:8080"
 
 def timestamped_print(*args):
     print(f"{time.strftime('%Y-%m-%d %H:%M:%S')}", *args)
