@@ -13,10 +13,10 @@ openai.base_url = os.getenv("OPENAI_BASE_URL")
 def timestamped_print(*args):
     print(f"{time.strftime('%Y-%m-%d %H:%M:%S')}", *args)
 
-def generate_prompt(instruction, output, retries=3, timeout=10):
-    timestamped_print(f"Generating prompt for instruction: {instruction[:30]}...")
+def generate_prompt(title, code, retries=3, timeout=10):
+    timestamped_print(f"Generating prompt for instruction: {title[:30]}...")
     data = {
-        "prompt": f"Given the Unreal Engine raw blueprint code and its title below, generate a prompt that a user might use to create this blueprint code:\n\nTitle: {instruction}\nBlueprint Code:\n{output}",
+        "prompt": f"Given the Unreal Engine raw blueprint code and its title below, generate a prompt that a user might use to create this blueprint code:\n\nTitle: {title}\nBlueprint Code:\n{code}",
         "max_tokens": 150
     }
 
@@ -49,10 +49,10 @@ def process_file(input_file, output_file):
         for obj in objects:
             object_count += 1
             timestamped_print(f"Processing JSON object #{object_count}...")
-            if 'instruction' in obj and 'output' in obj:
-                instruction = obj['instruction']
-                output = preprocess_blueprint_data(obj['output'])  # Call the preprocessing function here
-                prompt = generate_prompt(instruction, output)
+            if 'title' in obj and 'code' in obj:
+                title = obj['title']
+                code = preprocess_blueprint_data(obj['output'])  # Call the preprocessing function here
+                prompt = generate_prompt(title, code)
                 if prompt != "Error generating prompt after multiple attempts.":
                     processed_item = {"instruction": prompt}
                     json.dump(processed_item, out_f)
