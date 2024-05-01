@@ -8,7 +8,7 @@ import time
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
-openai.base_url = os.getnenv("OPENAI_BASE_URL")
+openai.base_url = os.getenv("OPENAI_BASE_URL")
 
 def timestamped_print(*args):
     print(f"{time.strftime('%Y-%m-%d %H:%M:%S')}", *args)
