@@ -67,7 +67,7 @@ def process_file(input_file, output_file):
     timestamped_print(f"Finished processing. Total objects processed: {object_count}.")
 
 # Adjust the file paths as necessary
-input_file_path = './blueprints/alpaca_lora.json'
+input_file_path = './blueprints/processed_blueprints.json'
 output_file_path = './blueprints/finetuned_data.json'
 # Call the process_file function
 process_file(input_file_path, output_file_path)
