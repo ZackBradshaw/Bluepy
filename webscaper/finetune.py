@@ -1,4 +1,4 @@
-
+import re
 import json
 import ijson  # Import ijson for incremental JSON parsing
 import openai
@@ -7,10 +7,8 @@ import os
 import time
 
 load_dotenv()
-# openai.api_key = os.getenv("OPENAI_API_KEY")
-# openai.base_url = os.getenv("OPENAI_BASE_URL")
-openai.api_key = ""
-openai.base_url = f"http://localhost:8080"
+openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.base_url = os.getenv("OPENAI_BASE_URL")
 
 def timestamped_print(*args):
     print(f"{time.strftime('%Y-%m-%d %H:%M:%S')}", *args)
@@ -32,9 +30,16 @@ def generate_prompt(instruction, output, retries=3, timeout=10):
             timestamped_print(f"Request failed due to an OpenAI error: {e}. Attempt {attempt + 1} of {retries}.")
         except Exception as e:
             timestamped_print(f"Request failed due to an exception: {e}. Attempt {attempt + 1} of {retries}.")
-        time.sleep(1)  # Wait for 1 second before retrying to avoid hammering the server
+        time.sleep(timeout)  # Wait for the specified timeout before retrying to avoid hammering the server
 
     return "Error generating prompt after multiple attempts."
+
+def preprocess_blueprint_data(raw_data):
+    processed_data = raw_data.replace("\\", "\\\\")
+    processed_data = processed_data.replace('\"', '\\"')
+    processed_data = processed_data.replace("\r\n", "\\r\\n")
+    processed_data = re.sub(r'}\s*[^}]*$', '}', processed_data)
+    return processed_data  # Don't forget to return the processed data!
 
 def process_file(input_file, output_file):
     object_count = 0
@@ -46,7 +51,7 @@ def process_file(input_file, output_file):
             timestamped_print(f"Processing JSON object #{object_count}...")
             if 'instruction' in obj and 'output' in obj:
                 instruction = obj['instruction']
-                output = obj['output']
+                output = preprocess_blueprint_data(obj['output'])  # Call the preprocessing function here
                 prompt = generate_prompt(instruction, output)
                 if prompt != "Error generating prompt after multiple attempts.":
                     processed_item = {"instruction": prompt}
@@ -65,3 +70,4 @@ input_file_path = './blueprints/processed_blueprints.json'
 output_file_path = './blueprints/finetuned_data.json'
 # Call the process_file function
 process_file(input_file_path, output_file_path)
+
