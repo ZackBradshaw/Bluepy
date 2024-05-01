@@ -51,7 +51,7 @@ def process_file(input_file, output_file):
             timestamped_print(f"Processing JSON object #{object_count}...")
             if 'title' in obj and 'code' in obj:
                 title = obj['title']
-                code = preprocess_blueprint_data(obj['output'])  # Call the preprocessing function here
+                code = preprocess_blueprint_data(obj['code'])  # Call the preprocessing function here
                 prompt = generate_prompt(title, code)
                 if prompt != "Error generating prompt after multiple attempts.":
                     processed_item = {"instruction": prompt}
