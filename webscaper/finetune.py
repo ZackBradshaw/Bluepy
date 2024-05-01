@@ -49,12 +49,15 @@ def process_file(input_file, output_file):
         for obj in objects:
             object_count += 1
             timestamped_print(f"Processing JSON object #{object_count}...")
+            # Check for 'title' and 'code' instead of 'instruction' and 'output'
             if 'title' in obj and 'code' in obj:
                 title = obj['title']
-                code = preprocess_blueprint_data(obj['code'])  # Call the preprocessing function here
+                # Preprocess the 'code' data
+                code = preprocess_blueprint_data(obj['code'])
+                # Use 'title' and 'code' to generate the prompt
                 prompt = generate_prompt(title, code)
                 if prompt != "Error generating prompt after multiple attempts.":
-                    processed_item = {"instruction": prompt}
+                    processed_item = {"title": title, "prompt": prompt}
                     json.dump(processed_item, out_f)
                     out_f.write("\n")
                     successful_count += 1  # Increment only on successful prompt generation
@@ -62,7 +65,7 @@ def process_file(input_file, output_file):
                 else:
                     timestamped_print(f"Failed to generate prompt for JSON object #{object_count}.")
             else:
-                timestamped_print(f"Missing 'instruction' or 'output' key in JSON object #{object_count}.")
+                timestamped_print(f"Missing 'title' or 'code' key in JSON object #{object_count}.")
     timestamped_print(f"Finished processing. Total objects processed: {object_count}, successfully processed: {successful_count}.")
 
 # Adjust the file paths as necessary
