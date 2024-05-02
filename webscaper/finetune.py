@@ -48,7 +48,7 @@ def process_file(input_file, output_file):
             object_count += 1
             timestamped_print(f"Processing JSON object #{object_count}...")
             if 'code' in obj:
-                code = preprocess_blueprint_data(obj['code'])
+                code = obj['code']  # Use the code directly without preprocessing
                 # Generate a title for the code (e.g., based on a pattern or a static string)
                 title = f"Blueprint {object_count}"  # Example title generation
                 prompt = generate_prompt(title, code)
@@ -73,5 +73,3 @@ input_file_path = './blueprints/processed_blueprints.json'
 output_file_path = './blueprints/finetuned_data.json'
 # Call the process_file function
 process_file(input_file_path, output_file_path)
-
-
