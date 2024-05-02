@@ -16,22 +16,26 @@ def timestamped_print(*args):
 def generate_prompt(title, code, retries=3, timeout=10):
     timestamped_print(f"Generating prompt for title: {title[:30]}...")
     data = {
+        "model": "text-davinci-003",  # Specify the model you're using; replace with the desired model name
         "prompt": f"Given the Unreal Engine raw blueprint code below, generate a prompt that a user might use to create this blueprint:\n\nBlueprint Code:\n{code}",
         "max_tokens": 150
     }
 
     for attempt in range(retries):
-        response = openai.Completion.create(**data)
-        prompt = response.choices[0].text.strip()
-        timestamped_print(f"Generated prompt: {prompt[:30]}...")
-        return prompt
+        try:
+            response = openai.Completion.create(**data)
+            prompt = response['choices'][0]['text'].strip()
+            timestamped_print(f"Generated prompt: {prompt[:30]}...")
+            return prompt
+        except openai.error.OpenAIError as e:
+            timestamped_print(f"Request failed due to an OpenAI error: {e}. Attempt {attempt + 1} of {retries}.")
+            time.sleep(timeout)  # Wait for the specified timeout before retrying to avoid hammering the server
+        except Exception as e:
+            timestamped_print(f"Request failed due to an exception: {e}. Attempt {attempt + 1} of {retries}.")
+            time.sleep(timeout)
 
-def preprocess_blueprint_data(raw_data):
-    processed_data = raw_data.replace("\\", "\\\\")
-    processed_data = processed_data.replace('\"', '\\"')
-    processed_data = processed_data.replace("\r\n", "\\r\\n")
-    processed_data = re.sub(r'}\s*[^}]*$', '}', processed_data)
-    return processed_data  # Don't forget to return the processed data!
+    return "Error generating prompt after multiple attempts."
+
 
 def process_file(input_file, output_file):
     object_count = 0
