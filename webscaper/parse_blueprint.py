@@ -1,3 +1,4 @@
+import json
 import pandas as pd
 import re
 import logging
@@ -67,11 +68,16 @@ def read_and_process_blueprints_from_csv(csv_path):
 
 def save_blueprints_to_json(processed_blueprints, output_filename):
     """
-    Saves processed blueprints to a JSON file.
+    Saves processed blueprints to a JSON file with only the 'code' field.
     """
     output_path = f"./blueprints/{output_filename}_processed.json"
-    processed_blueprints[['processed_code']].to_json(output_path, orient='records', lines=True)
+    # Select only the 'code' column and save as JSON
+    processed_blueprints = processed_blueprints[['code']]
+    records = processed_blueprints.to_dict(orient='records')
+    with open(output_path, 'w') as f:
+        json.dump(records, f, indent=4)
     logging.info(f"Processed blueprints saved to {output_path}")
+
 
 if __name__ == "__main__":
     csv_path = "./blueprints/blueprints_data.csv"  # Example CSV path

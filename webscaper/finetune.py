@@ -44,26 +44,32 @@ def preprocess_blueprint_data(raw_data):
 def process_file(input_file, output_file):
     object_count = 0
     successful_count = 0  # Track the number of successful prompt generations
-    with open(input_file, 'rb') as f, open(output_file, 'w') as out_f:
-        objects = ijson.items(f, 'item')
+    processed_prompts = []  # Initialize an empty list to store processed prompts
+
+    with open(input_file, 'r') as f:
+        objects = json.load(f)  # Load the entire JSON array into memory
         for obj in objects:
             object_count += 1
             timestamped_print(f"Processing JSON object #{object_count}...")
-            if 'processed_code' in obj:  # Assuming 'processed_code' is the key for the code
-                code = preprocess_blueprint_data(obj['processed_code'])
+            if 'code' in obj:
+                code = preprocess_blueprint_data(obj['code'])
                 # Generate a title for the code (e.g., based on a pattern or a static string)
                 title = f"Blueprint {object_count}"  # Example title generation
                 prompt = generate_prompt(title, code)
                 if prompt != "Error generating prompt after multiple attempts.":
-                    processed_item = {"title": title, "code": code, "prompt": prompt}
-                    json.dump(processed_item, out_f)
-                    out_f.write("\n")
+                    processed_prompt = {"title": title, "code": code, "prompt": prompt}
+                    processed_prompts.append(processed_prompt)  # Append to the list of processed prompts
                     successful_count += 1
                     timestamped_print(f"Processed and saved JSON object #{object_count}.")
                 else:
                     timestamped_print(f"Failed to generate prompt for JSON object #{object_count}.")
             else:
-                timestamped_print(f"Missing 'processed_code' key in JSON object #{object_count}.")
+                timestamped_print(f"Missing 'code' key in JSON object #{object_count}.")
+
+    # Write the list of processed prompts as a JSON array to the output file
+    with open(output_file, 'w') as out_f:
+        json.dump(processed_prompts, out_f, indent=2)
+
     timestamped_print(f"Finished processing. Total objects processed: {object_count}, successfully processed: {successful_count}.")
 
 # Adjust the file paths as necessary
