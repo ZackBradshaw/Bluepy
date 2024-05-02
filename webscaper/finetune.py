@@ -1,40 +1,48 @@
 import re
 import json
 import ijson  # Import ijson for incremental JSON parsing
-import openai
+from openai import OpenAI
 from dotenv import load_dotenv
 import os
 import time
 
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
-openai.base_url = os.getenv("OPENAI_BASE_URL")
+api_key = os.getenv("OPENAI_API_KEY")
+base_url = os.getenv("OPENAI_BASE_URL")
 
 def timestamped_print(*args):
     print(f"{time.strftime('%Y-%m-%d %H:%M:%S')}", *args)
 
+client = OpenAI(
+    api_key=api_key,
+    base_url=base_url
+)
+
 def generate_prompt(title, code, retries=3, timeout=10):
     timestamped_print(f"Generating prompt for title: {title[:30]}...")
-    data = {
-        "model": "text-davinci-003",  # Specify the model you're using; replace with the desired model name
-        "prompt": f"Given the Unreal Engine raw blueprint code below, generate a prompt that a user might use to create this blueprint:\n\nBlueprint Code:\n{code}",
-        "max_tokens": 150
-    }
+    messages = [
+        {
+            "role": "system",
+            "content": f"Generate a prompt for the following Unreal Engine raw blueprint code:"
+        },
+        {
+            "role": "user",
+            "content": code
+        }
+    ]
 
     for attempt in range(retries):
-        # try:
-        response = openai.Completion.create(**data)
-        prompt = response['choices'][0]['text'].strip()
-        timestamped_print(f"Generated prompt: {prompt[:30]}...")
-        return prompt
-    #     except openai.error.OpenAIError as e:
-    #         timestamped_print(f"Request failed due to an OpenAI error: {e}. Attempt {attempt + 1} of {retries}.")
-    #         time.sleep(timeout)  # Wait for the specified timeout before retrying to avoid hammering the server
-    #     except Exception as e:
-    #         timestamped_print(f"Request failed due to an exception: {e}. Attempt {attempt + 1} of {retries}.")
-    #         time.sleep(timeout)
-
-    # return "Error generating prompt after multiple attempts."
+        try:
+            completion = client.chat.completions.create(
+                model="deployment-name",  # Replace with your actual deployment name
+                messages=messages
+            )
+            prompt = completion.choices[0].message['content'].strip()  # Access the prompt text
+            timestamped_print(f"Generated prompt: {prompt[:30]}...")
+            return prompt
+        except Exception as e:
+            timestamped_print(f"Request failed due to an exception: {e}. Attempt {attempt + 1} of {retries}.")
+            time.sleep(timeout)
 
 
 def process_file(input_file, output_file):
