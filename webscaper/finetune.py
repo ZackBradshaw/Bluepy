@@ -21,18 +21,10 @@ def generate_prompt(title, code, retries=3, timeout=10):
     }
 
     for attempt in range(retries):
-        try:
-            response = openai.Completion.create(**data)
-            prompt = response.choices[0].text.strip()
-            timestamped_print(f"Generated prompt: {prompt[:30]}...")
-            return prompt
-        except openai.error.OpenAIError as e:
-            timestamped_print(f"Request failed due to an OpenAI error: {e}. Attempt {attempt + 1} of {retries}.")
-        except Exception as e:
-            timestamped_print(f"Request failed due to an exception: {e}. Attempt {attempt + 1} of {retries}.")
-        time.sleep(timeout)  # Wait for the specified timeout before retrying to avoid hammering the server
-
-    return "Error generating prompt after multiple attempts."
+        response = openai.Completion.create(**data)
+        prompt = response.choices[0].text.strip()
+        timestamped_print(f"Generated prompt: {prompt[:30]}...")
+        return prompt
 
 def preprocess_blueprint_data(raw_data):
     processed_data = raw_data.replace("\\", "\\\\")
