@@ -14,9 +14,9 @@ def timestamped_print(*args):
     print(f"{time.strftime('%Y-%m-%d %H:%M:%S')}", *args)
 
 def generate_prompt(title, code, retries=3, timeout=10):
-    timestamped_print(f"Generating prompt for instruction: {title[:30]}...")
+    timestamped_print(f"Generating prompt for title: {title[:30]}...")
     data = {
-        "prompt": f"Given the Unreal Engine raw blueprint code and its title below, generate a prompt that a user might use to create this blueprint code:\n\nTitle: {title}\nBlueprint Code:\n{code}",
+        "prompt": f"Given the Unreal Engine raw blueprint code below, generate a prompt that a user might use to create this blueprint:\n\nBlueprint Code:\n{code}",
         "max_tokens": 150
     }
 
@@ -49,23 +49,21 @@ def process_file(input_file, output_file):
         for obj in objects:
             object_count += 1
             timestamped_print(f"Processing JSON object #{object_count}...")
-            # Check for 'title' and 'code' instead of 'instruction' and 'output'
-            if 'title' in obj and 'code' in obj:
-                title = obj['title']
-                # Preprocess the 'code' data
-                code = preprocess_blueprint_data(obj['code'])
-                # Use 'title' and 'code' to generate the prompt
+            if 'processed_code' in obj:  # Assuming 'processed_code' is the key for the code
+                code = preprocess_blueprint_data(obj['processed_code'])
+                # Generate a title for the code (e.g., based on a pattern or a static string)
+                title = f"Blueprint {object_count}"  # Example title generation
                 prompt = generate_prompt(title, code)
                 if prompt != "Error generating prompt after multiple attempts.":
-                    processed_item = {"title": title, "prompt": prompt}
+                    processed_item = {"title": title, "code": code, "prompt": prompt}
                     json.dump(processed_item, out_f)
                     out_f.write("\n")
-                    successful_count += 1  # Increment only on successful prompt generation
+                    successful_count += 1
                     timestamped_print(f"Processed and saved JSON object #{object_count}.")
                 else:
                     timestamped_print(f"Failed to generate prompt for JSON object #{object_count}.")
             else:
-                timestamped_print(f"Missing 'title' or 'code' key in JSON object #{object_count}.")
+                timestamped_print(f"Missing 'processed_code' key in JSON object #{object_count}.")
     timestamped_print(f"Finished processing. Total objects processed: {object_count}, successfully processed: {successful_count}.")
 
 # Adjust the file paths as necessary
@@ -73,4 +71,5 @@ input_file_path = './blueprints/processed_blueprints.json'
 output_file_path = './blueprints/finetuned_data.json'
 # Call the process_file function
 process_file(input_file_path, output_file_path)
+
 
