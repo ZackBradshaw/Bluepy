@@ -49,11 +49,11 @@ def capture_blueprint_image(link):
 
         driver.get(full_url)
         # Wait for the blueprint to load
-        WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CLASS_NAME, 'blueprint'))) 
+        WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, '#blueprint-render-playground'))) 
         # Attempt to click the fullscreen button if available
         try:
             fullscreen_button = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'frame-header__buttons-fullscreen')]")))
+                EC.element_to_be_clickable((By.CSS_SELECTOR, '.frame-header__buttons-fullscreen')))
             fullscreen_button.click()
         except (NoSuchElementException, TimeoutException) as e:
             logging.error(f"Fullscreen button not found or not clickable for {link}: {e}")
@@ -64,7 +64,7 @@ def capture_blueprint_image(link):
         # Attempt to click the reset button if available
         try:
             reset_button = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'frame-header__buttons-reset')]")))
+                EC.element_to_be_clickable((By.CSS_SELECTOR, '.frame-header__buttons-reset')))
             reset_button.click()
         except (NoSuchElementException, TimeoutException) as e:
             logging.error(f"Reset button not found or not clickable for {link}: {e}")
