@@ -189,13 +189,46 @@ def get_blueprint_links_concurrently(base_url, start_page=1, end_page=10):
 
     return list(set(blueprint_links))  # Remove duplicates
         
-def scrape_blueprint_data(link):
+# def scrape_blueprint_data(link):
+#     """
+#     Scrapes blueprint data from a single link, including the blueprint code and capturing an image.
+#     """
+#     try:
+#         full_url = f"{BASE_URL}{link}"
+#         response = requests.get(full_url)
+        
+#         if response.status_code != 200:
+#             logging.warning(f"Skipping {link}, received status code: {response.status_code}")
+#             return {}
+
+#         soup = BeautifulSoup(response.text, 'html.parser')
+        
+#         title = soup.find('title').text.strip()
+#         author = soup.find('meta', {'name': 'author'})['content'].strip() if soup.find('meta', {'name': 'author'}) else 'Anonymous'
+#         ue_version = soup.find(string='UE version').findNext('span').text.strip() if soup.find(string='UE version') else 'Unknown'
+        
+#         # Extract blueprint code from a textarea with id="code_to_copy"
+#         blueprint_code = soup.find('textarea', {'id': 'code_to_copy'}).text.strip() if soup.find('textarea', {'id': 'code_to_copy'}) else "No code available"
+        
+#         # Capture an image of the blueprint
+#         capture_blueprint_image(link)
+        
+#         logging.debug(f"Connection pool size: {requests.Session().connection_pool}")
+#         response.close()
+        
+#         image_path = f"./images/{link.split('/')[-1]}.png"  # Define image path
+#         return {'title': title, 'author': author, 'ue_version': ue_version, 'url': full_url, 'code': blueprint_code, 'image': image_path}
+#     except Exception as e:
+#         logging.error(f"Error scraping blueprint data from {link}: {e}")
+#         return {}
+
+def scrape_blueprint_data(link, session):
     """
     Scrapes blueprint data from a single link, including the blueprint code and capturing an image.
     """
     try:
         full_url = f"{BASE_URL}{link}"
-        response = requests.get(full_url)
+        response = session.get(full_url)
         
         if response.status_code != 200:
             logging.warning(f"Skipping {link}, received status code: {response.status_code}")
@@ -213,7 +246,7 @@ def scrape_blueprint_data(link):
         # Capture an image of the blueprint
         capture_blueprint_image(link)
         
-        logging.debug(f"Connection pool size: {requests.Session().connection_pool}")
+        logging.debug(f"Connection pool size: {session.connection_pool}")
         response.close()
         
         image_path = f"./images/{link.split('/')[-1]}.png"  # Define image path
@@ -221,6 +254,7 @@ def scrape_blueprint_data(link):
     except Exception as e:
         logging.error(f"Error scraping blueprint data from {link}: {e}")
         return {}
+
 
 def save_blueprints_json(data):
     with open('blueprint_data.json', 'w') as file:
