@@ -171,22 +171,6 @@ def read_processed_blueprints_json(json_path):
     except Exception as e:
         logging.error(f"Failed to read JSON file {json_path}: {e}")
         return None
-
-def save_blueprints_csv(blueprints_data):
-    """
-    Saves the blueprint data as a CSV file.
-    """
-    try:
-        df = pd.DataFrame(blueprints_data)
-        filename = "./blueprints/blueprints_data.csv"
-        directory = os.path.dirname(filename)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        df.to_csv(filename, index=False)
-        logging.info(f"Saved {len(blueprints_data)} blueprints to {filename}")
-    except Exception as e:
-        logging.error(f"Error saving blueprints to CSV: {e}")
-   
  
 def parse_json_back_to_code(json_path):
     """
