@@ -14,9 +14,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import time
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException, WebDriverException
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.keys import Keys
 import json
 
 # Setup enhanced logging
@@ -50,6 +49,7 @@ def capture_blueprint_image(link):
         driver.get(full_url)
         # Wait for the blueprint to load
         WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, '#blueprint-render-playground'))) 
+        
         # Attempt to click the fullscreen button if available
         try:
             fullscreen_button = WebDriverWait(driver, 10).until(
@@ -85,7 +85,6 @@ def capture_blueprint_image(link):
 
     except Exception as e:
         logging.error(f"Error capturing blueprint from {link}: {e}")
-        logging.debug(f"Adjusted view to ensure all blueprint nodes are within view.")
 
 def adjust_blueprint_view(soup):
     try:
@@ -217,9 +216,9 @@ def scrape_blueprint_data(link, session, all_blueprints_data):
         
         image_path = f"./images/{link.split('/')[-1]}.png"  # Define image path
         
-        blueprint_data = {'title': title
+        blueprint_data
 
-, 'author': author, 'ue_version': ue_version, 'url': full_url, 'code': blueprint_code, 'image': image_path}
+ = {'title': title, 'author': author, 'ue_version': ue_version, 'url': full_url, 'code': blueprint_code, 'image': image_path}
         
         all_blueprints_data.append(blueprint_data)
         save_blueprints_json(all_blueprints_data)
@@ -228,8 +227,12 @@ def scrape_blueprint_data(link, session, all_blueprints_data):
         logging.error(f"Error scraping blueprint data from {link}: {e}")
 
 def save_blueprints_json(data):
-    with open('blueprint_data.json', 'w') as file:
-        json.dump(data, file, indent=4)
+    try:
+        with open('blueprint_data.json', 'w') as file:
+            json.dump(data, file, indent=4)
+        logging.info("Data successfully saved to JSON.")
+    except Exception as e:
+        logging.error(f"Failed to save data to JSON: {e}")
 
 def read_processed_blueprints_json(json_path):
     """
