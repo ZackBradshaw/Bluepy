@@ -3,3 +3,6 @@ beautifulsoup4
 requests
 pandas
 ijson
+selenium
+webdriver-manager
+python-dotenv
