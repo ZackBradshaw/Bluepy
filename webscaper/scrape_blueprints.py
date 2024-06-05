@@ -188,7 +188,7 @@ def get_blueprint_links_concurrently(base_url, start_page=1, end_page=10):
 
     return list(set(blueprint_links))  # Remove duplicates
 
-def scrape_blueprint_data(link, session):
+def scrape_blueprint_data(link, session, all_blueprints_data):
     """
     Scrapes blueprint data from a single link, including the blueprint code and capturing an image.
     """
@@ -198,7 +198,7 @@ def scrape_blueprint_data(link, session):
         
         if response.status_code != 200:
             logging.warning(f"Skipping {link}, received status code: {response.status_code}")
-            return {}
+            return
 
         soup = BeautifulSoup(response.text, 'html.parser')
         
@@ -216,10 +216,16 @@ def scrape_blueprint_data(link, session):
         response.close()
         
         image_path = f"./images/{link.split('/')[-1]}.png"  # Define image path
-        return {'title': title, 'author': author, 'ue_version': ue_version, 'url': full_url, 'code': blueprint_code, 'image': image_path}
+        
+        blueprint_data = {'title': title
+
+, 'author': author, 'ue_version': ue_version, 'url': full_url, 'code': blueprint_code, 'image': image_path}
+        
+        all_blueprints_data.append(blueprint_data)
+        save_blueprints_json(all_blueprints_data)
+        logging.info(f"Saved data for {link}")
     except Exception as e:
         logging.error(f"Error scraping blueprint data from {link}: {e}")
-        return {}
 
 def save_blueprints_json(data):
     with open('blueprint_data.json', 'w') as file:
@@ -262,10 +268,9 @@ if __name__ == "__main__":
     session.mount('http://', adapter)
     session.mount('https://', adapter)
     
-    all_blueprints_data = [scrape_blueprint_data(link, session) for link in blueprint_links]
-    
-    # Filter out empty blueprint data entries
-    all_blueprints_data = [data for data in all_blueprints_data if data]
+    all_blueprints_data = []
+    for link in blueprint_links:
+        scrape_blueprint_data(link, session, all_blueprints_data)
     
     logging.debug(f"Number of blueprints to save: {len(all_blueprints_data)}")
     
