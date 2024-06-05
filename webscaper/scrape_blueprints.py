@@ -19,13 +19,13 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
 # Setup enhanced logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 BASE_URL = "https://blueprintue.com"
 SEARCH_URL = f"{BASE_URL}/search/?"
 
 options = Options()
-options.add_argument("--headless")
+# options.add_argument("--headless")
 options.add_argument("--disable-gpu")
 options.add_argument("--window-size=1920,1080")
 options.add_argument("--no-sandbox")
@@ -85,18 +85,22 @@ def capture_blueprint_image(link):
         
 def fetch_links_for_page(page_url):
     try:
-        response = requests.get(page_url)
+        session = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=20)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+        response = session.get(page_url)
         if response.status_code != 200:
             logging.warning(f"Non-200 status code received: {response.status_code}")
             return []
-
         soup = BeautifulSoup(response.text, 'html.parser')
         links = soup.find_all('a', href=True)
+        session.close()  # Close the session after use
         return [link['href'] for link in links if '/blueprint/' in link['href']]
     except Exception as e:
         logging.error(f"Error fetching blueprint links from {page_url}: {e}")
         return []
-        
+
 def get_blueprint_links_concurrently(base_url, start_page=1, end_page=10):
     """
     Fetches blueprint links across multiple pages concurrently.
@@ -138,6 +142,9 @@ def scrape_blueprint_data(link):
         # Capture an image of the blueprint
         capture_blueprint_image(link)
         
+        logging.debug(f"Connection pool size: {requests.Session().connection_pool}")
+        response.close()
+        
         return {'title': title, 'author': author, 'ue_version': ue_version, 'url': full_url, 'code': blueprint_code}
     except Exception as e:
         logging.error(f"Error scraping blueprint data from {link}: {e}")
@@ -173,23 +180,8 @@ def save_blueprints_csv(blueprints_data):
         logging.info(f"Saved {len(blueprints_data)} blueprints to {filename}")
     except Exception as e:
         logging.error(f"Error saving blueprints to CSV: {e}")
-        
-def scrape_blueprint_data_concurrently(blueprint_links):
-    all_blueprints_data = []
-
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        future_to_link = {executor.submit(scrape_blueprint_data, link): link for link in blueprint_links}
-        for future in as_completed(future_to_link):
-            try:
-                blueprint_data = future.result()
-                if blueprint_data:
-                    all_blueprints_data.append(blueprint_data)
-                    logging.info(f"Scraped data for {future_to_link[future]}")
-            except Exception as e:
-                logging.error(f"Error scraping blueprint data: {e}")
-
-    return all_blueprints_data
-    
+   
+ 
 def parse_json_back_to_code(json_path):
     """
     Reads processed blueprints from a JSON file and parses them back into raw blueprint code.
@@ -205,6 +197,16 @@ def parse_json_back_to_code(json_path):
 
 if __name__ == "__main__":
     blueprint_links = get_blueprint_links_concurrently(BASE_URL, 1, 10)
-    all_blueprints_data = scrape_blueprint_data_concurrently(blueprint_links)
-    save_blueprints_csv(all_blueprints_data)
+    all_blueprints_data = [scrape_blueprint_data(link) for link in blueprint_links]
+    
+    # Filter out empty blueprint data entries
+    all_blueprints_data = [data for data in all_blueprints_data if data]
+    
+    logging.debug(f"Number of blueprints to save: {len(all_blueprints_data)}")
+    
+    if all_blueprints_data:
+        save_blueprints_csv(all_blueprints_data)
+    else:
+        logging.warning("No blueprints to save.")
+    
     driver.quit()
