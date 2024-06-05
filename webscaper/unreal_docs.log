@@ -7,22 +7,6 @@ INFO:WDM:Get LATEST geckodriver version for 126.0 firefox
 INFO:WDM:Get LATEST geckodriver version for 126.0 firefox
 INFO:WDM:Get LATEST geckodriver version for 126.0 firefox
 INFO:WDM:Get LATEST geckodriver version for 126.0 firefox
-INFO:WDM:There is no [linux64] geckodriver "v0.34.0" for browser firefox "126.0" in cache
-INFO:WDM:Get LATEST geckodriver version for 126.0 firefox
-INFO:WDM:There is no [linux64] geckodriver "v0.34.0" for browser firefox "126.0" in cache
-INFO:WDM:Get LATEST geckodriver version for 126.0 firefox
-INFO:WDM:There is no [linux64] geckodriver "v0.34.0" for browser firefox "126.0" in cache
-INFO:WDM:Get LATEST geckodriver version for 126.0 firefox
-INFO:WDM:Getting latest mozilla release info for v0.34.0
-INFO:WDM:Getting latest mozilla release info for v0.34.0
-INFO:WDM:Getting latest mozilla release info for v0.34.0
-INFO:WDM:About to download new driver from https://github.com/mozilla/geckodriver/releases/download/v0.34.0/geckodriver-v0.34.0-linux64.tar.gz
-INFO:WDM:About to download new driver from https://github.com/mozilla/geckodriver/releases/download/v0.34.0/geckodriver-v0.34.0-linux64.tar.gz
-INFO:WDM:About to download new driver from https://github.com/mozilla/geckodriver/releases/download/v0.34.0/geckodriver-v0.34.0-linux64.tar.gz
-INFO:WDM:Driver downloading response is 200
-INFO:WDM:Driver downloading response is 200
-INFO:WDM:Driver downloading response is 200
-INFO:WDM:Get LATEST geckodriver version for 126.0 firefox
-INFO:WDM:Get LATEST geckodriver version for 126.0 firefox
-INFO:WDM:Get LATEST geckodriver version for 126.0 firefox
-INFO:WDM:Driver has been saved in cache [/home/zack/.wdm/drivers/geckodriver/linux64/v0.34.0]
+INFO:WDM:Driver [/home/zack/.wdm/drivers/geckodriver/linux64/v0.34.0/geckodriver] found in cache
+INFO:WDM:Driver [/home/zack/.wdm/drivers/geckodriver/linux64/v0.34.0/geckodriver] found in cache
+INFO:WDM:Driver [/home/zack/.wdm/drivers/geckodriver/linux64/v0.34.0/geckodriver] found in cache
