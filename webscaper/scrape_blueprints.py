@@ -4,6 +4,15 @@ import pandas as pd
 import os
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
+import time
 
 # Setup enhanced logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -11,6 +20,12 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 BASE_URL = "https://blueprintue.com"
 SEARCH_URL = f"{BASE_URL}/search/?"
 
+# Setup Selenium WebDriver
+options = Options()
+options.add_argument("--headless")  # Run in headless mode
+options.add_argument("--disable-gpu")
+options.add_argument("--window-size=1920,1080")
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
 def fetch_links_for_page(page_url):
     try:
@@ -66,7 +81,7 @@ def scrape_blueprint_data(link):
     except Exception as e:
         logging.error(f"Error scraping blueprint data from {link}: {e}")
         return {}
-        
+
 def read_processed_blueprints_json(json_path):
     """
     Reads a JSON file containing processed blueprints and returns the data.
@@ -82,6 +97,7 @@ def read_processed_blueprints_json(json_path):
     except Exception as e:
         logging.error(f"Failed to read JSON file {json_path}: {e}")
         return None
+
 def save_blueprints_csv(blueprints_data):
     """
     Saves the blueprint data as a CSV file.
@@ -131,14 +147,58 @@ def parse_json_back_to_code(json_path):
     # Here you can save the blueprint codes back to a file or process them further as needed
     logging.info(f"Parsed {len(all_blueprint_codes)} blueprints back into code.")
 
+def capture_full_blueprint(link):
+    """
+    Captures the full blueprint by navigating, zooming, and panning to ensure all nodes are visible.
+    """
+    try:
+        full_url = f"{BASE_URL}{link}"
+        driver.get(full_url)
+        
+        # Wait for the blueprint to load
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, 'blueprint')))
+
+        # Fullscreen the blueprint
+        fullscreen_button = driver.find_element(By.CLASS_NAME, 'fullscreen')
+        fullscreen_button.click()
+        time.sleep(2)  # Wait for the transition to fullscreen
+
+        # Zoom out to ensure all nodes are visible
+        body = driver.find_element(By.TAG_NAME, 'body')
+        for _ in range(10):  # Adjust the range as needed
+            body.send_keys(Keys.CONTROL, Keys.SUBTRACT)
+            time.sleep(0.1)
+
+        # Pan to ensure all nodes are in view
+        blueprint_area = driver.find_element(By.CLASS_NAME, 'blueprint')
+        actions = webdriver.ActionChains(driver)
+        actions.move_to_element(blueprint_area).click_and_hold().move_by_offset(-500, -500).release().perform()
+        time.sleep(2)  # Wait for the panning to complete
+
+        # Take a screenshot
+        screenshot_path = f"./screenshots/{link.split('/')[-1]}.png"
+        directory = os.path.dirname(screenshot_path)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        driver.save_screenshot(screenshot_path)
+        logging.info(f"Captured screenshot for {link}")
+
+    except Exception as e:
+        logging.error(f"Error capturing blueprint from {link}: {e}")
+
 def scrape_all_blueprints_concurrently():
     """
     Scrapes all blueprints concurrently and saves the data into a CSV file.
     """
     logging.info("Starting to scrape all blueprints concurrently...")
-    blueprint_links = get_blueprint_links_concurrently(SEARCH_URL, 4000, 4075)  # Example: Scrape pages 1 to 20
+    blueprint_links = get_blueprint_links_concurrently(SEARCH_URL, 4000, 4075)  # Example: Scrape pages 4000 to 4075
     all_blueprints_data = scrape_blueprint_data_concurrently(blueprint_links)
     save_blueprints_csv(all_blueprints_data)
 
+    # Capture screenshots of all blueprints
+    for link in blueprint_links:
+        capture_full_blueprint(link)
+
 if __name__ == "__main__":
     scrape_all_blueprints_concurrently()
+    driver.quit()

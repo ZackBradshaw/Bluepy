@@ -7,8 +7,8 @@ import os
 import time
 
 load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
-base_url = os.getenv("OPENAI_BASE_URL")
+api_key = os.getenv("OPENAI_API_KEY", "")
+base_url = "http://0.0.0.0:23333"
 
 def timestamped_print(*args):
     print(f"{time.strftime('%Y-%m-%d %H:%M:%S')}", *args)
