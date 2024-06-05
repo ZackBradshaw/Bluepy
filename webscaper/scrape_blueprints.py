@@ -26,7 +26,6 @@ BASE_URL = "https://blueprintue.com"
 SEARCH_URL = f"{BASE_URL}/search/?"
 
 options = Options()
-# options.add_argument("--headless")
 options.add_argument("--disable-gpu")
 options.add_argument("--window-size=1920,1080")
 options.add_argument("--no-sandbox")
@@ -188,39 +187,6 @@ def get_blueprint_links_concurrently(base_url, start_page=1, end_page=10):
                 logging.info(f"Scraped {len(page_links)} links from {future_to_url[future]}")
 
     return list(set(blueprint_links))  # Remove duplicates
-        
-# def scrape_blueprint_data(link):
-#     """
-#     Scrapes blueprint data from a single link, including the blueprint code and capturing an image.
-#     """
-#     try:
-#         full_url = f"{BASE_URL}{link}"
-#         response = requests.get(full_url)
-        
-#         if response.status_code != 200:
-#             logging.warning(f"Skipping {link}, received status code: {response.status_code}")
-#             return {}
-
-#         soup = BeautifulSoup(response.text, 'html.parser')
-        
-#         title = soup.find('title').text.strip()
-#         author = soup.find('meta', {'name': 'author'})['content'].strip() if soup.find('meta', {'name': 'author'}) else 'Anonymous'
-#         ue_version = soup.find(string='UE version').findNext('span').text.strip() if soup.find(string='UE version') else 'Unknown'
-        
-#         # Extract blueprint code from a textarea with id="code_to_copy"
-#         blueprint_code = soup.find('textarea', {'id': 'code_to_copy'}).text.strip() if soup.find('textarea', {'id': 'code_to_copy'}) else "No code available"
-        
-#         # Capture an image of the blueprint
-#         capture_blueprint_image(link)
-        
-#         logging.debug(f"Connection pool size: {requests.Session().connection_pool}")
-#         response.close()
-        
-#         image_path = f"./images/{link.split('/')[-1]}.png"  # Define image path
-#         return {'title': title, 'author': author, 'ue_version': ue_version, 'url': full_url, 'code': blueprint_code, 'image': image_path}
-#     except Exception as e:
-#         logging.error(f"Error scraping blueprint data from {link}: {e}")
-#         return {}
 
 def scrape_blueprint_data(link, session):
     """
@@ -255,7 +221,6 @@ def scrape_blueprint_data(link, session):
         logging.error(f"Error scraping blueprint data from {link}: {e}")
         return {}
 
-
 def save_blueprints_json(data):
     with open('blueprint_data.json', 'w') as file:
         json.dump(data, file, indent=4)
@@ -275,7 +240,7 @@ def read_processed_blueprints_json(json_path):
     except Exception as e:
         logging.error(f"Failed to read JSON file {json_path}: {e}")
         return None
- 
+
 def parse_json_back_to_code(json_path):
     """
     Reads processed blueprints from a JSON file and parses them back into raw blueprint code.
@@ -291,7 +256,13 @@ def parse_json_back_to_code(json_path):
 
 if __name__ == "__main__":
     blueprint_links = get_blueprint_links_concurrently(BASE_URL, 1, 10)
-    all_blueprints_data = [scrape_blueprint_data(link) for link in blueprint_links]
+    
+    session = requests.Session()
+    adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=20)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+    
+    all_blueprints_data = [scrape_blueprint_data(link, session) for link in blueprint_links]
     
     # Filter out empty blueprint data entries
     all_blueprints_data = [data for data in all_blueprints_data if data]
