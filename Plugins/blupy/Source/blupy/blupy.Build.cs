@@ -34,18 +34,23 @@ public class blupy : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"CoreUObject",
-				"Engine",
-				"Slate",
-				"SlateCore",
-				"InputCore",
 				"EditorFramework",
 				"EditorStyle",
 				"UnrealEd",
 				"LevelEditor",
 				"InteractiveToolsFramework",
 				"EditorInteractiveToolsFramework"
-				// ... add private dependencies that you statically link with here ...	
+				"Core",
+				"CoreUObject",
+				"Engine",
+				"Slate",
+				"SlateCore",
+				"InputCore",
+				"HTTP",
+				"Json",
+				"JsonUtilities",
+				"ImageWrapper"
+				
 			}
 			);
 		
