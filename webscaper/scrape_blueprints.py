@@ -216,9 +216,7 @@ def scrape_blueprint_data(link, session, all_blueprints_data):
         
         image_path = f"./images/{link.split('/')[-1]}.png"  # Define image path
         
-        blueprint_data
-
- = {'title': title, 'author': author, 'ue_version': ue_version, 'url': full_url, 'code': blueprint_code, 'image': image_path}
+        blueprint_data = {'title': title, 'author': author, 'ue_version': ue_version, 'url': full_url, 'code': blueprint_code, 'image': image_path}
         
         all_blueprints_data.append(blueprint_data)
         save_blueprints_json(all_blueprints_data)
@@ -279,6 +277,7 @@ if __name__ == "__main__":
     
     if all_blueprints_data:
         save_blueprints_json(all_blueprints_data)
+        logging.info("Blueprint data saved successfully.")
     else:
         logging.warning("No blueprints to save.")
     
