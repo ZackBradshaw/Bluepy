@@ -31,7 +31,7 @@ public class blupy : ModuleRules
                 "Json",
                 "JsonUtilities",
                 "ImageWrapper"
-                // ... add other public dependencies that you statically link with here ...
+				"UnrealBuildTool"
             }
         );
         
