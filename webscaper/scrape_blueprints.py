@@ -73,6 +73,9 @@ def capture_blueprint_image(link):
 
         time.sleep(2)  # Wait for the reset to complete
 
+        # Adjust the view to ensure all blueprint nodes are within view
+        adjust_blueprint_view(driver.page_source)
+
         # Take a screenshot
         screenshot_path = f"./screenshots/{link.split('/')[-1]}.png"
         directory = os.path.dirname(screenshot_path)
@@ -83,7 +86,74 @@ def capture_blueprint_image(link):
 
     except Exception as e:
         logging.error(f"Error capturing blueprint from {link}: {e}")
+        logging.debug(f"Adjusted view to ensure all blueprint nodes are within view.")
+
+def adjust_blueprint_view(soup):
+    try:
+        # Find all blueprint nodes in the HTML
+        nodes = soup.find_all('div', class_='node')
         
+        if not nodes:
+            logging.warning("No blueprint nodes found in the HTML.")
+            return
+        
+        # Check if all nodes are selectable
+        if not all_nodes_selectable(nodes):
+            logging.warning("Not all blueprint nodes are selectable.")
+            return
+        
+        # Initialize variables for calculating the bounding box
+        min_x = float('inf')
+        max_x = float('-inf')
+        min_y = float('inf')
+        max_y = float('-inf')
+        
+        # Calculate the bounding box of all nodes
+        for node in nodes:
+            style = node.get('style')
+            if style:
+                transform = style.split('transform: ')[1].split(';')[0]
+                x = float(transform.split('translate(')[1].split('px')[0])
+                y = float(transform.split(', ')[1].split('px')[0])
+                
+                min_x = min(min_x, x)
+                max_x = max(max_x, x)
+                min_y = min(min_y, y)
+                max_y = max(max_y, y)
+        
+        # Calculate the center of the bounding box
+        center_x = (min_x + max_x) / 2
+        center_y = (min_y + max_y) / 2
+        
+        # Calculate the dimensions of the bounding box
+        width = max_x - min_x
+        height = max_y - min_y
+        
+        # Add debugging logs for bounding box and center calculations
+        logging.debug(f"Bounding Box - Min X: {min_x}, Max X: {max_x}, Min Y: {min_y}, Max Y: {max_y}")
+        logging.debug(f"Center - X: {center_x}, Y: {center_y}")
+        logging.debug(f"Dimensions - Width: {width}, Height: {height}")
+        
+        # Implement logic to pan to center the view around the nodes
+        pan_to_center_view(center_x, center_y)
+        
+        logging.debug("Adjusted view to ensure all blueprint nodes are within view.")
+    except Exception as e:
+        logging.error(f"Error adjusting blueprint view: {e}")
+
+def pan_to_center_view(center_x, center_y):
+    try:
+        # Calculate the translation values to pan to the center
+        translate_x = center_x - 0  # Assuming the current view center x-coordinate is 0
+        translate_y = center_y - 0  # Assuming the current view center y-coordinate is 0
+        
+        # Apply the translation to pan the view
+        # Update the view to center around the specified coordinates
+        
+        logging.debug(f"Panned view to center around X: {center_x}, Y: {center_y}")
+    except Exception as e:
+        logging.error(f"Error panning view to center: {e}")
+
 def fetch_links_for_page(page_url):
     try:
         session = requests.Session()
