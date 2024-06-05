@@ -20,11 +20,13 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 BASE_URL = "https://blueprintue.com"
 SEARCH_URL = f"{BASE_URL}/search/?"
 
-# Setup Selenium WebDriver
 options = Options()
-options.add_argument("--headless")  # Run in headless mode
+options.add_argument("--headless")
 options.add_argument("--disable-gpu")
 options.add_argument("--window-size=1920,1080")
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-dev-shm-usage")
+
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
 def fetch_links_for_page(page_url):
@@ -154,7 +156,6 @@ def capture_full_blueprint(link):
     try:
         full_url = f"{BASE_URL}{link}"
         driver.get(full_url)
-        
         # Wait for the blueprint to load
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, 'blueprint')))
 
