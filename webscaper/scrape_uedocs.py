@@ -63,8 +63,12 @@ def main():
     """
     Main function to process a list of URLs concurrently and save the extracted text to a file.
     """
-    with open('urls.txt', 'r') as f:
-        page_urls = f.read().splitlines()
+    # Hardcoded URLs for Unreal Engine documentation versions
+    page_urls = [
+        "https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-2-documentation?application_version=5.2",
+        "https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-1-documentation?application_version=5.1",
+        "https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-3-documentation?application_version=5.3"
+    ]
 
     docs_text = ''
     with ThreadPoolExecutor(max_workers=5) as executor:
