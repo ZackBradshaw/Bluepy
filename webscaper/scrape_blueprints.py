@@ -17,6 +17,7 @@ import time
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
+import json
 
 # Setup enhanced logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -145,10 +146,15 @@ def scrape_blueprint_data(link):
         logging.debug(f"Connection pool size: {requests.Session().connection_pool}")
         response.close()
         
-        return {'title': title, 'author': author, 'ue_version': ue_version, 'url': full_url, 'code': blueprint_code}
+        image_path = f"./images/{link.split('/')[-1]}.png"  # Define image path
+        return {'title': title, 'author': author, 'ue_version': ue_version, 'url': full_url, 'code': blueprint_code, 'image': image_path}
     except Exception as e:
         logging.error(f"Error scraping blueprint data from {link}: {e}")
         return {}
+
+def save_blueprints_json(data):
+    with open('blueprint_data.json', 'w') as file:
+        json.dump(data, file, indent=4)
 
 def read_processed_blueprints_json(json_path):
     """
@@ -205,7 +211,7 @@ if __name__ == "__main__":
     logging.debug(f"Number of blueprints to save: {len(all_blueprints_data)}")
     
     if all_blueprints_data:
-        save_blueprints_csv(all_blueprints_data)
+        save_blueprints_json(all_blueprints_data)
     else:
         logging.warning("No blueprints to save.")
     
