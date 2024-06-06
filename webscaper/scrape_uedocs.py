@@ -67,9 +67,11 @@ def main():
     """
     # Hardcoded URLs for Unreal Engine documentation versions
     page_urls = [
-        "https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-2-documentation?application_version=5.2",
+        "https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-0-documentation?application_version=5.0",
         "https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-1-documentation?application_version=5.1",
-        "https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-3-documentation?application_version=5.3"
+        "https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-2-documentation?application_version=5.2",
+        "https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-3-documentation?application_version=5.3",
+        "https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-4-documentation?application_version=5.4"
     ]
 
     docs_text = ''
