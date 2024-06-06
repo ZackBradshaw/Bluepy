@@ -101,11 +101,11 @@ def fetch_links_for_page(page_url):
         logging.error(f"Error fetching blueprint links from {page_url}: {e}")
         return []
 
-def get_blueprint_links_concurrently(base_url, total_pages):
+def get_blueprint_links_concurrently(base_url, total_pages, start_page):
     """
     Fetches blueprint links across multiple pages concurrently.
     """
-    page_urls = [f"{base_url}/last-blueprints/{page}/" for page in range(1, total_pages + 1)]
+    page_urls = [f"{base_url}/last-blueprints/{page}/" for page in range(start_page, total_pages + 1)]
     blueprint_links = []
 
     with ThreadPoolExecutor(max_workers=5) as executor:
@@ -194,10 +194,11 @@ def append_data_to_file(data, filename):
 
 # Main execution
 if __name__ == "__main__":
+    start_page = 47
     total_pages = 4777
     logging.info(f"Total pages to scrape: {total_pages}")
     
-    blueprint_links = get_blueprint_links_concurrently(BASE_URL, total_pages)
+    blueprint_links = get_blueprint_links_concurrently(BASE_URL, total_pages, start_page)
     
     session = requests.Session()
     adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=20)

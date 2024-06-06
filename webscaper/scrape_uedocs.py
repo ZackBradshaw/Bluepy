@@ -3,9 +3,9 @@ from bs4 import BeautifulSoup
 import logging
 import time
 from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.firefox.service import Service
-from webdriver_manager.firefox import GeckoDriverManager
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from webdriver_manager.chrome import ChromeDriverManager
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -14,12 +14,14 @@ logging.basicConfig(filename='unreal_docs.log', level=logging.INFO, filemode='w'
 
 def setup_driver():
     """
-    Sets up the Firefox WebDriver with headless options.
+    Sets up the Chrome WebDriver with headless options.
     """
-    options = Options()
+    options = ChromeOptions()
     options.add_argument('--headless')
-    service = Service(GeckoDriverManager().install())
-    driver = webdriver.Firefox(service=service, options=options)
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    service = ChromeService(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
     return driver
 
 def fetch_page_content(url):
@@ -29,11 +31,11 @@ def fetch_page_content(url):
     driver = setup_driver()
     try:
         driver.get(url)
-        time.sleep(10)  # Wait for dynamic content to load
+        time.sleep(20)  # Increase wait time
         content = driver.page_source
         return content
     except Exception as e:
-        logging.error(f"Error fetching {url}: {e}")
+        logging.error(f"Error fetching {url}: {e}", exc_info=True)  # Log traceback
     finally:
         driver.quit()
 
