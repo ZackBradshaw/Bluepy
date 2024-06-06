@@ -17,6 +17,8 @@ import time
 from selenium.common.exceptions import NoSuchElementException, TimeoutException, WebDriverException
 from selenium.webdriver.common.action_chains import ActionChains
 import json
+import base64
+from io import BytesIO
 
 # Setup enhanced logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -32,10 +34,21 @@ options.add_argument("--disable-dev-shm-usage")
 
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
+# TODO fix panning
+# def pan_to_center_view(center_x, center_y):
+#     try:
+#         # Calculate the translation values to pan to the center
+#         translate_x = center_x - 0  # Assuming the current view center x-coordinate is 0
+#         translate_y = center_y - 0  # Assuming the current view center y-coordinate is 0
+        
+#         # Apply the translation to pan the view
+#         # Update the view to center around the specified coordinates
+        
+#         logging.debug(f"Panned view to center around X: {center_x}, Y: {center_y}")
+#     except Exception as e:
+#         logging.error(f"Error panning view to center: {e}")
+
 def capture_blueprint_image(link):
-    """
-    Captures the full blueprint by navigating, zooming, and panning to ensure all nodes are visible.
-    """
     try:
         full_url = f"{BASE_URL}{link}"
         
@@ -44,7 +57,7 @@ def capture_blueprint_image(link):
             socket.gethostbyname("blueprintue.com")
         except socket.gaierror as e:
             logging.error(f"Error resolving domain name: {e}")
-            return
+            return None
 
         driver.get(full_url)
         # Wait for the blueprint to load
@@ -57,7 +70,7 @@ def capture_blueprint_image(link):
             fullscreen_button.click()
         except (NoSuchElementException, TimeoutException) as e:
             logging.error(f"Fullscreen button not found or not clickable for {link}: {e}")
-            return
+            return None
 
         time.sleep(2)  # Wait for the transition to fullscreen
 
@@ -68,89 +81,29 @@ def capture_blueprint_image(link):
             reset_button.click()
         except (NoSuchElementException, TimeoutException) as e:
             logging.error(f"Reset button not found or not clickable for {link}: {e}")
-            return
+            return None
 
         time.sleep(2)  # Wait for the reset to complete
 
         # Adjust the view to ensure all blueprint nodes are within view
-        adjust_blueprint_view(driver.page_source)
+        # adjust_blueprint_view(driver.page_source)
 
-        # Take a screenshot
-        screenshot_path = f"./screenshots/{link.split('/')[-1]}.png"
+        screenshot_path = f"./screenshots/{link.split('/')[-1]}{capture_blueprint_image.counter}.png"
+        capture_blueprint_image.counter += 1
         directory = os.path.dirname(screenshot_path)
         if not os.path.exists(directory):
             os.makedirs(directory)
         driver.save_screenshot(screenshot_path)
         logging.info(f"Captured screenshot for {link}")
 
+        return screenshot_path
+
     except Exception as e:
         logging.error(f"Error capturing blueprint from {link}: {e}")
-
-def adjust_blueprint_view(soup):
-    try:
-        # Find all blueprint nodes in the HTML
-        nodes = soup.find_all('div', class_='node')
-        
-        if not nodes:
-            logging.warning("No blueprint nodes found in the HTML.")
-            return
-        
-        # Check if all nodes are selectable
-        if not all_nodes_selectable(nodes):
-            logging.warning("Not all blueprint nodes are selectable.")
-            return
-        
-        # Initialize variables for calculating the bounding box
-        min_x = float('inf')
-        max_x = float('-inf')
-        min_y = float('inf')
-        max_y = float('-inf')
-        
-        # Calculate the bounding box of all nodes
-        for node in nodes:
-            style = node.get('style')
-            if style:
-                transform = style.split('transform: ')[1].split(';')[0]
-                x = float(transform.split('translate(')[1].split('px')[0])
-                y = float(transform.split(', ')[1].split('px')[0])
-                
-                min_x = min(min_x, x)
-                max_x = max(max_x, x)
-                min_y = min(min_y, y)
-                max_y = max(max_y, y)
-        
-        # Calculate the center of the bounding box
-        center_x = (min_x + max_x) / 2
-        center_y = (min_y + max_y) / 2
-        
-        # Calculate the dimensions of the bounding box
-        width = max_x - min_x
-        height = max_y - min_y
-        
-        # Add debugging logs for bounding box and center calculations
-        logging.debug(f"Bounding Box - Min X: {min_x}, Max X: {max_x}, Min Y: {min_y}, Max Y: {max_y}")
-        logging.debug(f"Center - X: {center_x}, Y: {center_y}")
-        logging.debug(f"Dimensions - Width: {width}, Height: {height}")
-        
-        # Implement logic to pan to center the view around the nodes
-        pan_to_center_view(center_x, center_y)
-        
-        logging.debug("Adjusted view to ensure all blueprint nodes are within view.")
-    except Exception as e:
-        logging.error(f"Error adjusting blueprint view: {e}")
-
-def pan_to_center_view(center_x, center_y):
-    try:
-        # Calculate the translation values to pan to the center
-        translate_x = center_x - 0  # Assuming the current view center x-coordinate is 0
-        translate_y = center_y - 0  # Assuming the current view center y-coordinate is 0
-        
-        # Apply the translation to pan the view
-        # Update the view to center around the specified coordinates
-        
-        logging.debug(f"Panned view to center around X: {center_x}, Y: {center_y}")
-    except Exception as e:
-        logging.error(f"Error panning view to center: {e}")
+        return None
+            
+# Initialize the counter attribute
+capture_blueprint_image.counter = 1
 
 def fetch_links_for_page(page_url):
     try:
@@ -178,7 +131,8 @@ def get_blueprint_links_concurrently(base_url, start_page=1, end_page=10):
     blueprint_links = []
 
     with ThreadPoolExecutor(max_workers=5) as executor:
-        future_to_url = {executor.submit(fetch_links_for_page, url): url for url in page_urls}
+        future_to_url = {executor.submit(fetch_links_for_page, url):
+         url for url in page_urls}
         for future in as_completed(future_to_url):
             page_links = future.result()
             if page_links:
@@ -188,9 +142,6 @@ def get_blueprint_links_concurrently(base_url, start_page=1, end_page=10):
     return list(set(blueprint_links))  # Remove duplicates
 
 def scrape_blueprint_data(link, session, all_blueprints_data):
-    """
-    Scrapes blueprint data from a single link, including the blueprint code and capturing an image.
-    """
     try:
         full_url = f"{BASE_URL}{link}"
         response = session.get(full_url)
@@ -209,58 +160,56 @@ def scrape_blueprint_data(link, session, all_blueprints_data):
         blueprint_code = soup.find('textarea', {'id': 'code_to_copy'}).text.strip() if soup.find('textarea', {'id': 'code_to_copy'}) else "No code available"
         
         # Capture an image of the blueprint
-        capture_blueprint_image(link)
+        image_path = capture_blueprint_image(link)
         
-        logging.debug(f"Connection pool size: {session.connection_pool}")
-        response.close()
-        
-        image_path = f"./images/{link.split('/')[-1]}.png"  # Define image path
-        
-        blueprint_data = {'title': title, 'author': author, 'ue_version': ue_version, 'url': full_url, 'code': blueprint_code, 'image': image_path}
-        
-        all_blueprints_data.append(blueprint_data)
-        save_blueprints_json(all_blueprints_data)
-        logging.info(f"Saved data for {link}")
+        if image_path:
+            # Format the data
+            metadata = f"{title} by {author}, UE Version: {ue_version}"
+            formatted_data = format_data(image_path, metadata, blueprint_code, link.split('/')[-1])
+            
+            # Append the formatted data to the list
+            all_blueprints_data.append(formatted_data)
+            logging.info(f"Formatted data for {link}")
+        else:
+            logging.error(f"Failed to capture image for {link}")
+
     except Exception as e:
         logging.error(f"Error scraping blueprint data from {link}: {e}")
 
-def save_blueprints_json(data):
+def format_data(image_path, metadata, blueprint_code):
+    # Create the formatted data
+    data = {
+        "id": "",
+        "image": image_path,
+        "conversations": [
+            {
+                "from": "human",
+                "value": metadata,
+            },
+            {
+                "from": "gpt",
+                "value": blueprint_code,
+            }
+        ]
+    }
+
+    # Save the formatted JSON data
+    json_path = f"data_{link.split('/')[-1]}.json"
+    with open(json_path, 'w') as json_file:
+        json.dump(data, json_file, indent=4)
+    
+    return data
+
+def save_blueprints_json(all_blueprints_data, filename='all_blueprints.json'):
     try:
-        with open('blueprint_data.json', 'w') as file:
-            json.dump(data, file, indent=4)
-        logging.info("Data successfully saved to JSON.")
+        with open(filename, 'w') as f:
+            json.dump(all_blueprints_data, f, indent=4)
+            logging.info(f"Blueprint data saved to {filename}")
     except Exception as e:
-        logging.error(f"Failed to save data to JSON: {e}")
+        logging.error(f"Error saving blueprint data to {filename}: {e}")
 
-def read_processed_blueprints_json(json_path):
-    """
-    Reads a JSON file containing processed blueprints and returns the data.
-    """
-    if not os.path.exists(json_path):
-        logging.error(f"JSON file {json_path} does not exist.")
-        return None
-    try:
-        with open(json_path, 'r') as f:
-            data = json.load(f)
-        logging.info(f"JSON file {json_path} successfully read.")
-        return data
-    except Exception as e:
-        logging.error(f"Failed to read JSON file {json_path}: {e}")
-        return None
 
-def parse_json_back_to_code(json_path):
-    """
-    Reads processed blueprints from a JSON file and parses them back into raw blueprint code.
-    """
-    processed_blueprints = read_processed_blueprints_json(json_path)
-    if processed_blueprints is None:
-        logging.error("Failed to read processed blueprints from JSON.")
-        return []
-
-    all_blueprint_codes = [blueprint['code'] for blueprint in processed_blueprints if 'code' in blueprint]
-    logging.info(f"Parsed {len(all_blueprint_codes)} blueprints back into code.")
-    return all_blueprint_codes
-
+# Main execution
 if __name__ == "__main__":
     blueprint_links = get_blueprint_links_concurrently(BASE_URL, 1, 10)
     
