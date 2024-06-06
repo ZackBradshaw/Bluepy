@@ -1,8 +1,6 @@
 import socket
-import pyperclip
 import requests
 from bs4 import BeautifulSoup
-import pandas as pd
 import os
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -14,17 +12,14 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import time
-from selenium.common.exceptions import NoSuchElementException, TimeoutException, WebDriverException
-from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 import json
-import base64
-from io import BytesIO
 
 # Setup enhanced logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 BASE_URL = "https://blueprintue.com"
-SEARCH_URL = f"{BASE_URL}/search/?"
+DATA_FILE_PATH = "./blueprints/data.json"
 
 options = Options()
 options.add_argument("--disable-gpu")
@@ -33,20 +28,6 @@ options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-
-# TODO fix panning
-# def pan_to_center_view(center_x, center_y):
-#     try:
-#         # Calculate the translation values to pan to the center
-#         translate_x = center_x - 0  # Assuming the current view center x-coordinate is 0
-#         translate_y = center_y - 0  # Assuming the current view center y-coordinate is 0
-        
-#         # Apply the translation to pan the view
-#         # Update the view to center around the specified coordinates
-        
-#         logging.debug(f"Panned view to center around X: {center_x}, Y: {center_y}")
-#     except Exception as e:
-#         logging.error(f"Error panning view to center: {e}")
 
 def capture_blueprint_image(link):
     try:
@@ -85,10 +66,7 @@ def capture_blueprint_image(link):
 
         time.sleep(2)  # Wait for the reset to complete
 
-        # Adjust the view to ensure all blueprint nodes are within view
-        # adjust_blueprint_view(driver.page_source)
-
-        screenshot_path = f"./screenshots/{link.split('/')[-1]}{capture_blueprint_image.counter}.png"
+        screenshot_path = f"./screenshots/{link.split('/')[-1]}_{capture_blueprint_image.counter}.png"
         capture_blueprint_image.counter += 1
         directory = os.path.dirname(screenshot_path)
         if not os.path.exists(directory):
@@ -131,8 +109,7 @@ def get_blueprint_links_concurrently(base_url, start_page=1, end_page=10):
     blueprint_links = []
 
     with ThreadPoolExecutor(max_workers=5) as executor:
-        future_to_url = {executor.submit(fetch_links_for_page, url):
-         url for url in page_urls}
+        future_to_url = {executor.submit(fetch_links_for_page, url): url for url in page_urls}
         for future in as_completed(future_to_url):
             page_links = future.result()
             if page_links:
@@ -141,7 +118,7 @@ def get_blueprint_links_concurrently(base_url, start_page=1, end_page=10):
 
     return list(set(blueprint_links))  # Remove duplicates
 
-def scrape_blueprint_data(link, session, all_blueprints_data):
+def scrape_blueprint_data(link, session, data_file_path):
     try:
         full_url = f"{BASE_URL}{link}"
         response = session.get(full_url)
@@ -167,8 +144,8 @@ def scrape_blueprint_data(link, session, all_blueprints_data):
             metadata = f"{title} by {author}, UE Version: {ue_version}"
             formatted_data = format_data(image_path, metadata, blueprint_code, link.split('/')[-1])
             
-            # Append the formatted data to the list
-            all_blueprints_data.append(formatted_data)
+            # Append the formatted data to the file
+            append_data_to_file(formatted_data, data_file_path)
             logging.info(f"Formatted data for {link}")
         else:
             logging.error(f"Failed to capture image for {link}")
@@ -176,10 +153,10 @@ def scrape_blueprint_data(link, session, all_blueprints_data):
     except Exception as e:
         logging.error(f"Error scraping blueprint data from {link}: {e}")
 
-def format_data(image_path, metadata, blueprint_code):
+def format_data(image_path, metadata, blueprint_code, link):
     # Create the formatted data
     data = {
-        "id": "",
+        "id": link,
         "image": image_path,
         "conversations": [
             {
@@ -192,22 +169,28 @@ def format_data(image_path, metadata, blueprint_code):
             }
         ]
     }
-
-    # Save the formatted JSON data
-    json_path = f"data_{link.split('/')[-1]}.json"
-    with open(json_path, 'w') as json_file:
-        json.dump(data, json_file, indent=4)
-    
     return data
 
-def save_blueprints_json(all_blueprints_data, filename='all_blueprints.json'):
+def append_data_to_file(data, filename):
     try:
-        with open(filename, 'w') as f:
-            json.dump(all_blueprints_data, f, indent=4)
-            logging.info(f"Blueprint data saved to {filename}")
-    except Exception as e:
-        logging.error(f"Error saving blueprint data to {filename}: {e}")
+        if os.path.exists(filename):
+            with open(filename, 'r') as f:
+                existing_data = json.load(f)
+        else:
+            existing_data = []
 
+        existing_data.append(data)
+
+        # Ensure the directory exists
+        directory = os.path.dirname(filename)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        with open(filename, 'w') as f:
+            json.dump(existing_data, f, indent=4)
+            logging.info(f"Appended blueprint data to {filename}")
+    except Exception as e:
+        logging.error(f"Error appending blueprint data to {filename}: {e}")
 
 # Main execution
 if __name__ == "__main__":
@@ -218,16 +201,9 @@ if __name__ == "__main__":
     session.mount('http://', adapter)
     session.mount('https://', adapter)
     
-    all_blueprints_data = []
     for link in blueprint_links:
-        scrape_blueprint_data(link, session, all_blueprints_data)
-    
-    logging.debug(f"Number of blueprints to save: {len(all_blueprints_data)}")
-    
-    if all_blueprints_data:
-        save_blueprints_json(all_blueprints_data)
-        logging.info("Blueprint data saved successfully.")
-    else:
-        logging.warning("No blueprints to save.")
+        scrape_blueprint_data(link, session, DATA_FILE_PATH)
     
     driver.quit()
+
+
