@@ -1,8 +1,5 @@
-import socket
-import requests
+import socket, requests, os, logging, time, json
 from bs4 import BeautifulSoup
-import os
-import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -11,15 +8,10 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
-import time
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
-import json
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
-# Simulate scrolling up by 8 increments
-for _ in range(8):
-    ActionChains(driver).key_down(Keys.CONTROL).send_keys(Keys.ARROW_UP).key_up(Keys.CONTROL).perform()
 # Setup enhanced logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -38,10 +30,6 @@ def capture_blueprint_image(link):
     try:
         full_url = f"{BASE_URL}{link}"
         
-        # Simulate scrolling up by 8 increments
-        for _ in range(8):
-            ActionChains(driver).key_down(Keys.CONTROL).send_keys(Keys.ARROW_UP).key_up(Keys.CONTROL).perform()
-
         # Check if the domain name can be resolved
         try:
             socket.gethostbyname("blueprintue.com")
@@ -63,6 +51,10 @@ def capture_blueprint_image(link):
             return None
 
         time.sleep(2)  # Wait for the transition to fullscreen
+
+        # Simulate scrolling up by 8 increments
+        for _ in range(8):
+            ActionChains(driver).key_down(Keys.CONTROL).send_keys(Keys.ARROW_UP).key_up(Keys.CONTROL).perform()
 
         # Attempt to click the reset button if available
         try:
