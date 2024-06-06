@@ -89,7 +89,7 @@ def fetch_links_for_page(page_url):
         adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=20)
         session.mount('http://', adapter)
         session.mount('https://', adapter)
-        response = session.get(page_url)
+        response = session.get(page_url, timeout=10)
         if response.status_code != 200:
             logging.warning(f"Non-200 status code received: {response.status_code}")
             return []
@@ -97,15 +97,15 @@ def fetch_links_for_page(page_url):
         links = soup.find_all('a', href=True)
         session.close()  # Close the session after use
         return [link['href'] for link in links if '/blueprint/' in link['href']]
-    except Exception as e:
+    except requests.exceptions.RequestException as e:
         logging.error(f"Error fetching blueprint links from {page_url}: {e}")
         return []
 
-def get_blueprint_links_concurrently(base_url, start_page=1, end_page=10):
+def get_blueprint_links_concurrently(base_url, total_pages):
     """
     Fetches blueprint links across multiple pages concurrently.
     """
-    page_urls = [f"{base_url}/type/blueprint/{page}/" for page in range(start_page, end_page + 1)]
+    page_urls = [f"{base_url}/last-blueprints/{page}/" for page in range(1, total_pages + 1)]
     blueprint_links = []
 
     with ThreadPoolExecutor(max_workers=5) as executor:
@@ -121,7 +121,7 @@ def get_blueprint_links_concurrently(base_url, start_page=1, end_page=10):
 def scrape_blueprint_data(link, session, data_file_path):
     try:
         full_url = f"{BASE_URL}{link}"
-        response = session.get(full_url)
+        response = session.get(full_url, timeout=10)
         
         if response.status_code != 200:
             logging.warning(f"Skipping {link}, received status code: {response.status_code}")
@@ -150,7 +150,7 @@ def scrape_blueprint_data(link, session, data_file_path):
         else:
             logging.error(f"Failed to capture image for {link}")
 
-    except Exception as e:
+    except requests.exceptions.RequestException as e:
         logging.error(f"Error scraping blueprint data from {link}: {e}")
 
 def format_data(image_path, metadata, blueprint_code, link):
@@ -194,7 +194,10 @@ def append_data_to_file(data, filename):
 
 # Main execution
 if __name__ == "__main__":
-    blueprint_links = get_blueprint_links_concurrently(BASE_URL, 1, 10)
+    total_pages = 4777
+    logging.info(f"Total pages to scrape: {total_pages}")
+    
+    blueprint_links = get_blueprint_links_concurrently(BASE_URL, total_pages)
     
     session = requests.Session()
     adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=20)
@@ -205,5 +208,7 @@ if __name__ == "__main__":
         scrape_blueprint_data(link, session, DATA_FILE_PATH)
     
     driver.quit()
+
+
 
 
