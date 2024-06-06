@@ -52,7 +52,7 @@ def capture_blueprint_image(link):
 
         time.sleep(2)  # Wait for the transition to fullscreen
 
-        # Simulate scrolling up by 8 increments
+        # Simulate scrolling up by 8 increments using Control key
         for _ in range(8):
             ActionChains(driver).key_down(Keys.CONTROL).send_keys(Keys.ARROW_UP).key_up(Keys.CONTROL).perform()
 
